@@ -1,0 +1,216 @@
+'use client';
+import Image from 'next/image';
+import { Montserrat } from 'next/font/google'
+import { useDispatch, useSelector } from 'react-redux';
+import React, { useRef } from 'react';
+import { Message } from '@/types/chatTypes';
+import { ToastContainer, toast } from 'react-toastify';
+import { useChatSocket } from '@/lib/hooks/socket';
+import { useReadStatusSocket } from '@/lib/hooks/readSocket';
+import { updateChatsReadStatus } from '@/store/slices/chatSlice';
+import { useNotifcationSocket } from '@/lib/hooks/notificationSocket';
+import { appendChat } from '@/store/slices/chatSlice';
+import { updateChats } from '@/store/slices/chatSlice';
+import { v4 as uuidv4 } from "uuid";
+
+
+const inter = Montserrat({
+    weight: '400',
+    subsets: ['latin'],
+})
+
+function ChatInput({ id, chatid, username, MessageSentSuccessfully }: { id: number, chatid: number, username: string, MessageSentSuccessfully: any }) {
+
+    const notify = (msg: string) => toast(msg);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const textareaContainerRef = useRef<HTMLDivElement>(null);
+
+    const { sendMessage } = useChatSocket(chatid.toString(), (data) => {
+        MessageSentSuccessfully(data)
+    });
+
+    const handleInput = () => {
+        const textarea = textareaRef.current;
+        const divtext = textareaContainerRef.current;
+        if (textarea && divtext) {
+            textarea.style.height = 'auto'; // Reset height
+            divtext.style.height = 'auto';
+            textarea.style.height = `${Math.min(textarea.scrollHeight, 300)}px`; // Max height = 300px
+            divtext.style.height = `${Math.min(textarea.scrollHeight + 20, 340)}px`; // Max height = 340px
+        }
+    };
+
+    const handleMessageSend = async () => {
+        const content = textareaRef?.current?.value;
+
+        if (content !== undefined) {
+
+            const message_id = uuidv4(); // 👈 generate once
+
+            sendMessage(
+            content,
+            username,
+            id.toString(),
+            chatid.toString(),
+            message_id // 👈 pass UUID
+            );
+
+
+            //sendMessage(content, username, id.toString(), chatid.toString())
+            if (textareaRef?.current?.value) {
+                textareaRef.current.value = "";
+            }
+        }
+
+    }
+
+    return (
+        <div className="absolute bottom-0 left-0 w-full min-h-[110px] bg-white"
+            ref={textareaContainerRef}
+        >
+            {chatid !== null && !Number.isNaN(chatid) && (
+                <>
+                    <textarea
+                        ref={textareaRef}
+                        onInput={handleInput}
+                        placeholder="Type your message here..."
+                        className="absolute w-[85%] min-h-[60px] max-h-[300px] overflow-y-auto border border-solid border-[#E6E6E6] right-[20px] top-[10px] rounded-[24px] p-[20px] resize-none"
+                    >
+                    </textarea>
+                    <button className='w-10 h-10 rounded-[50%]  absolute bottom-[25px] right-[35px]' onClick={() => {
+                        handleMessageSend();
+                    }}>
+                        <Image src="/icons/send.svg" alt="Send" width={20} height={20} className='m-auto' />
+                    </button>
+                </>
+            )}
+            <ToastContainer
+                position="top-right"
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick={false}
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="light"
+            />
+        </div>
+    );
+}
+
+export default function MainChat() {
+
+    console.log("Main Chat Rendered")
+    const {id: chatid} = useSelector((state: any) => state.selectedChat);
+    const chatIdRef = React.useRef<string | null>(null);
+    const { username, id } = useSelector((state: any) => state.user);
+    
+
+    const dispatch = useDispatch();
+    const [messages, setMessages] = React.useState<Message[]>([]);
+
+    const { sendChatReadStatus } = useReadStatusSocket(chatid !== null ? chatid.toString() : "test", (data) => {
+        if (data.status === "success") {
+            
+        }
+    });
+
+    const { sendMessage } = useNotifcationSocket(username, (data) => {
+        
+
+        if (data?.content) {
+            dispatch(updateChats(data))
+            
+            let chatidd = data.chat;
+            console.log("from useNotifcationSocket :",chatidd)
+            if(typeof chatidd!=='number')
+                chatidd=parseInt(chatidd)
+            
+            if (chatIdRef.current === chatidd) {
+                dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatidd }))
+            }
+        } else {
+            const { messages, ...rest } = data.data.chat.chat;
+            let net_result = {
+                ...rest, latest_message: messages[0]
+            }
+            dispatch(appendChat(net_result))
+        }
+
+    });
+
+
+    const getChatDetails = async (chatId: number) => {
+        try {
+            const res = await fetch('/api/chatdetails', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ chatId }),
+            });
+
+            const response = await res.json();
+            
+            setMessages(response.data.messages)
+            console.log("from getchatdetails :",chatId)
+            dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatId }))
+
+        } catch (err: any) {
+            alert('could not fetch chat details due to some problem')
+        } finally {
+        }
+    }
+
+    React.useEffect(() => {
+
+        if (chatid !== null) {
+            getChatDetails(chatid)
+            let tttt = chatid
+            if (typeof tttt !== 'number')
+                tttt= parseInt(tttt)
+            chatIdRef.current = tttt;
+        }
+    }, [chatid])
+
+    const MessageSentSuccessfully = (data: Message) => {
+       
+        setMessages((prev) => [...prev, data])
+        if (data.sender_username !== username || true) {
+            //sendChatReadStatus(chatid, id, data.message_id.toString())
+            sendChatReadStatus(chatid, id, data.message_id)
+        }
+    }
+
+    return (
+        <div className='h-[90%] w-[100%] text-gray-900 relative bg-[#f1f9fc]'>
+            <div className="w-full px-4 py-6 rounded-lg h-[80vh] overflow-y-auto space-y-4 pb-[80px]">
+                {messages.map((msg: any) => {
+                    const isOwn = msg.sender_username === username;
+                    return (
+                        <div
+                            key={msg.message_id}
+                            className={`h-auto flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                        >
+                            <div
+                                className={`rounded-2xl px-4 py-3 max-w-[75%] h-auto text-sm ${isOwn
+                                    ? 'bg-[#17AEE5] text-white rounded-br-none'
+                                    : 'bg-gray-200 text-gray-800 rounded-bl-none'
+                                    }`}
+                            >
+                                <div className="font-semibold text-xs mb-1">
+                                    {msg.sender_username}
+                                </div>
+                                <div className='h-auto'>{msg.content}</div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+            <ChatInput id={id} chatid={parseInt(chatid)} username={username} MessageSentSuccessfully={MessageSentSuccessfully} />
+        </div>
+    )
+}
