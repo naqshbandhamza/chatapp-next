@@ -19,15 +19,11 @@ const inter = Montserrat({
     subsets: ['latin'],
 })
 
-function ChatInput({ id, chatid, username, MessageSentSuccessfully }: { id: number, chatid: number, username: string, MessageSentSuccessfully: any }) {
+function ChatInput({ id, chatid, username, participants, sendMessage, MessageSentSuccessfully }: { id: number, chatid: number, username: string, participants:string[], sendMessage: any, MessageSentSuccessfully: any }) {
 
     const notify = (msg: string) => toast(msg);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const textareaContainerRef = useRef<HTMLDivElement>(null);
-
-    const { sendMessage } = useChatSocket(chatid.toString(), (data) => {
-        MessageSentSuccessfully(data)
-    });
 
     const handleInput = () => {
         const textarea = textareaRef.current;
@@ -47,12 +43,17 @@ function ChatInput({ id, chatid, username, MessageSentSuccessfully }: { id: numb
 
             const message_id = uuidv4(); // 👈 generate once
 
-            sendMessage(
-            content,
-            username,
-            id.toString(),
-            chatid.toString(),
-            message_id // 👈 pass UUID
+            sendMessage({
+                event_type: "new_message",
+                content: {
+                    content,
+                    username,
+                    id,
+                    chatid,
+                    message_id // 👈 pass UUID
+                    ,participants
+                }
+            }
             );
 
 
@@ -103,40 +104,50 @@ function ChatInput({ id, chatid, username, MessageSentSuccessfully }: { id: numb
 export default function MainChat() {
 
     console.log("Main Chat Rendered")
-    const {id: chatid} = useSelector((state: any) => state.selectedChat);
+    const { id: chatid } = useSelector((state: any) => state.selectedChat);
     const chatIdRef = React.useRef<string | null>(null);
     const { username, id } = useSelector((state: any) => state.user);
-    
+
 
     const dispatch = useDispatch();
     const [messages, setMessages] = React.useState<Message[]>([]);
+    const [participants,setParticipants] = React.useState<string[]>([]);
 
-    const { sendChatReadStatus } = useReadStatusSocket(chatid !== null ? chatid.toString() : "test", (data) => {
-        if (data.status === "success") {
-            
-        }
-    });
 
-    const { sendMessage } = useNotifcationSocket(username, (data) => {
-        
+    const { sendMessage } = useNotifcationSocket(username, (res) => {
 
-        if (data?.content) {
-            dispatch(updateChats(data))
-            
-            let chatidd = data.chat;
-            console.log("from useNotifcationSocket :",chatidd)
-            if(typeof chatidd!=='number')
-                chatidd=parseInt(chatidd)
-            
-            if (chatIdRef.current === chatidd) {
-                dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatidd }))
-            }
-        } else {
-            const { messages, ...rest } = data.data.chat.chat;
+        console.log(" tempppp: ", res)
+
+        if (res.data.event_type === "new_chat") {
+
+            const { messages, ...rest } = res.data.content.chat;
             let net_result = {
                 ...rest, latest_message: messages[0]
             }
             dispatch(appendChat(net_result))
+
+            dispatch(updateChats(messages[0]))
+
+        } else if(res.data.event_type === "new_message") {
+            console.log("new msg",res)
+
+            let chatidd = res.data.content.chat;
+            if(typeof chatidd!=='number')
+                chatidd=parseInt(chatidd)
+
+            dispatch(updateChats(res.data.content))
+            if (chatIdRef.current === chatidd) {
+                setMessages((prev) => [...prev, res.data.content])
+                sendMessage({
+                    event_type: "read_receipt",
+                    content: {
+                        chatId: chatidd, senderId:id, lastMessageId: res.data.content.message_id
+                    }
+                }
+                );
+                dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatidd }))
+            }
+
         }
 
     });
@@ -154,9 +165,10 @@ export default function MainChat() {
             });
 
             const response = await res.json();
-            
+            console.log("res res ttt", response)
+            setParticipants([response.data.creator_username,response.data.participants[0].username])
             setMessages(response.data.messages)
-            console.log("from getchatdetails :",chatId)
+            console.log("from getchatdetails :", chatId)
             dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatId }))
 
         } catch (err: any) {
@@ -171,17 +183,17 @@ export default function MainChat() {
             getChatDetails(chatid)
             let tttt = chatid
             if (typeof tttt !== 'number')
-                tttt= parseInt(tttt)
+                tttt = parseInt(tttt)
             chatIdRef.current = tttt;
         }
     }, [chatid])
 
     const MessageSentSuccessfully = (data: Message) => {
-       
+
         setMessages((prev) => [...prev, data])
         if (data.sender_username !== username || true) {
             //sendChatReadStatus(chatid, id, data.message_id.toString())
-            sendChatReadStatus(chatid, id, data.message_id)
+            //sendChatReadStatus(chatid, id, data.message_id)
         }
     }
 
@@ -210,7 +222,7 @@ export default function MainChat() {
                     );
                 })}
             </div>
-            <ChatInput id={id} chatid={parseInt(chatid)} username={username} MessageSentSuccessfully={MessageSentSuccessfully} />
+            <ChatInput id={id} chatid={parseInt(chatid)} username={username} sendMessage={sendMessage} participants={participants} MessageSentSuccessfully={MessageSentSuccessfully} />
         </div>
     )
 }

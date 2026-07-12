@@ -28,10 +28,13 @@ export const useNotifcationSocket = (username: string, onMessage: (msg: any) => 
     
   }, [username]);
 
-  const sendMessage = (message: string) => {
+  const sendMessage = (data: {
+    event_type:string,
+    content:any
+  }) => {
     socketRef.current?.send(
       JSON.stringify({
-        message,
+        data,
       })
     );
   };

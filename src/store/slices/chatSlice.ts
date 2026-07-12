@@ -37,12 +37,11 @@ export const chatSlice = createSlice({
     },
     updateChats(state, action: PayloadAction<Message>) {
       const newMessage = action.payload;
+      console.log("new msg: ",newMessage)
       
       let tttt:any = newMessage.chat;
       // Find the index of the chat this message belongs to
       const chatIndex = state.chats.findIndex(chat => chat.chat_id === parseInt(tttt));
-      
-      
 
       if (chatIndex !== -1) {
         // Update latest_message
@@ -64,7 +63,7 @@ export const chatSlice = createSlice({
       const chatIndex = state.chats.findIndex(chat => chat.chat_id === chatid)
 
       if (chatIndex !== -1) {
-        // Update latest_message
+        // Update latest_message 
         state.chats[chatIndex].read_status.last_read_message_id = state.chats[chatIndex].latest_message?.message_id;
       } 
     },
