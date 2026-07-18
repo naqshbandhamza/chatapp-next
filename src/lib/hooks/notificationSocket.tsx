@@ -1,14 +1,14 @@
 'use client';
 import { useEffect, useRef, useState } from "react";
 
-export const useNotifcationSocket = (username: string, onMessage: (msg: any) => void) => {
+export const useNotifcationSocket = (userId: string, onMessage: (msg: any) => void) => {
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
       const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
       const socket = new WebSocket(
-        `${protocol}://127.0.0.1:8000/ws/api/chat/notifications/${username}/`
+        `${protocol}://127.0.0.1:8000/ws/api/chat/notifications/${userId}/`
       );
 
       socketRef.current = socket;
@@ -26,7 +26,7 @@ export const useNotifcationSocket = (username: string, onMessage: (msg: any) => 
         socket.close();
       };
     
-  }, [username]);
+  }, [userId]);
 
   const sendMessage = (data: {
     event_type:string,

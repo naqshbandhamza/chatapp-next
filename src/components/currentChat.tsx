@@ -5,8 +5,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import React, { useRef } from 'react';
 import { Message } from '@/types/chatTypes';
 import { ToastContainer, toast } from 'react-toastify';
-import { useChatSocket } from '@/lib/hooks/socket';
-import { useReadStatusSocket } from '@/lib/hooks/readSocket';
+//import { useChatSocket } from '@/lib/hooks/socket';
+//import { useReadStatusSocket } from '@/lib/hooks/readSocket';
 import { updateChatsReadStatus } from '@/store/slices/chatSlice';
 import { useNotifcationSocket } from '@/lib/hooks/notificationSocket';
 import { appendChat } from '@/store/slices/chatSlice';
@@ -104,6 +104,10 @@ function ChatInput({ id, chatid, username, participants, sendMessage, MessageSen
 export default function MainChat() {
 
     console.log("Main Chat Rendered")
+
+    // chatid -> is chat's id
+    // id     -> is users's id
+
     const { id: chatid } = useSelector((state: any) => state.selectedChat);
     const chatIdRef = React.useRef<string | null>(null);
     const { username, id } = useSelector((state: any) => state.user);
@@ -114,7 +118,7 @@ export default function MainChat() {
     const [participants,setParticipants] = React.useState<string[]>([]);
 
 
-    const { sendMessage } = useNotifcationSocket(username, (res) => {
+    const { sendMessage } = useNotifcationSocket(id, (res) => {
 
         console.log(" tempppp: ", res)
 
@@ -166,7 +170,7 @@ export default function MainChat() {
 
             const response = await res.json();
             console.log("res res ttt", response)
-            setParticipants([response.data.creator_username,response.data.participants[0].username])
+            setParticipants([response.data.created_by,response.data.participants[0].user])
             setMessages(response.data.messages)
             console.log("from getchatdetails :", chatId)
             dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatId }))
