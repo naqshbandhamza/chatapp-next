@@ -19,7 +19,7 @@ const inter = Montserrat({
     subsets: ['latin'],
 })
 
-function ChatInput({ id, chatid, username, participants, sendMessage, MessageSentSuccessfully }: { id: number, chatid: number, username: string, participants:string[], sendMessage: any, MessageSentSuccessfully: any }) {
+function ChatInput({ id, chatid, username,  sendMessage, MessageSentSuccessfully }: { id: number, chatid: number, username: string,  sendMessage: any, MessageSentSuccessfully: any }) {
 
     const notify = (msg: string) => toast(msg);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -51,7 +51,7 @@ function ChatInput({ id, chatid, username, participants, sendMessage, MessageSen
                     id,
                     chatid,
                     message_id // 👈 pass UUID
-                    ,participants
+                    //,participants
                 }
             }
             );
@@ -115,7 +115,7 @@ export default function MainChat() {
 
     const dispatch = useDispatch();
     const [messages, setMessages] = React.useState<Message[]>([]);
-    const [participants,setParticipants] = React.useState<string[]>([]);
+    //const [participants,setParticipants] = React.useState<string[]>([]);
 
 
     const { sendMessage } = useNotifcationSocket(id, (res) => {
@@ -170,7 +170,7 @@ export default function MainChat() {
 
             const response = await res.json();
             console.log("res res ttt", response)
-            setParticipants([response.data.created_by,response.data.participants[0].user])
+            //setParticipants([response.data.created_by,response.data.participants[0].user])
             setMessages(response.data.messages)
             console.log("from getchatdetails :", chatId)
             dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatId }))
@@ -226,7 +226,7 @@ export default function MainChat() {
                     );
                 })}
             </div>
-            <ChatInput id={id} chatid={parseInt(chatid)} username={username} sendMessage={sendMessage} participants={participants} MessageSentSuccessfully={MessageSentSuccessfully} />
+            <ChatInput id={id} chatid={parseInt(chatid)} username={username} sendMessage={sendMessage}  MessageSentSuccessfully={MessageSentSuccessfully} />
         </div>
     )
 }

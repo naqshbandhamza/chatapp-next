@@ -38,7 +38,7 @@ export default function ChatCard({ chat, username, id, latest, participantUserna
                     }}
                 >
                     <div className="font-semibold text-lg text-gray-800 truncate">
-                        {participantUsernames.includes(username) ? chat.creator_username : participantUsernames[0]}
+                        {participantUsernames[0]===username ? participantUsernames[1] : participantUsernames[0]}
                     </div>
                     <div className="flex justify-between text-sm text-gray-600 truncate">
                         {latest?.content || "No messages yet"}
