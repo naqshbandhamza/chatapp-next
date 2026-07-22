@@ -26,7 +26,8 @@ export default function ChatCard({ chat, username, id, latest, participantUserna
                     onClick={() => {
                         
                         dispatch(setChatId(chat.chat_id))
-                        let target_username = participantUsernames.includes(username) ? chat.creator_username : participantUsernames[0]
+                        console.log(participantUsernames)
+                        let target_username =  participantUsernames[0]===username ? participantUsernames[1] : participantUsernames[0];
                         dispatch(setTargetUser({ username: target_username, id: null, token: null }));
 
                         let ele = document.getElementById("left-bar");
