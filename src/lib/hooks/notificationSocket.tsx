@@ -8,7 +8,8 @@ export const useNotifcationSocket = (userId: string, onMessage: (msg: any) => vo
       const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
       const socket = new WebSocket(
-        `${protocol}://localhost:8000/ws/api/chat/notifications/${userId}/`
+         `${protocol}://localhost:8000/ws/api/chat/notifications/`
+        // `${protocol}://localhost:8000/ws/api/chat/notifications/${userId}/`
       );
 
       socketRef.current = socket;
