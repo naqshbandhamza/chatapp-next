@@ -39,6 +39,10 @@ function ChatInput({ id, chatid, username,  sendMessage, MessageSentSuccessfully
     const handleMessageSend = async () => {
         const content = textareaRef?.current?.value;
 
+        if (!content) {
+            return; // Don't send empty messages
+        }    
+
         if (content !== undefined) {
 
             const message_id = uuidv4(); // 👈 generate once
@@ -72,6 +76,12 @@ function ChatInput({ id, chatid, username,  sendMessage, MessageSentSuccessfully
             {chatid !== null && !Number.isNaN(chatid) && (
                 <>
                     <textarea
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleMessageSend();
+                            }
+                        }}
                         ref={textareaRef}
                         onInput={handleInput}
                         placeholder="Type your message here..."
@@ -202,7 +212,7 @@ export default function MainChat() {
     }
 
     return (
-        <div className='h-[90%] w-[100%] text-gray-900 relative bg-[#f1f9fc]'>
+        <div className='h-[90%] w-[100%] text-gray-900 relative bg-[#F6F2FA]'>
             <div className="w-full px-4 py-6 rounded-lg h-[80vh] overflow-y-auto space-y-4 pb-[80px]">
                 {messages.map((msg: any) => {
                     const isOwn = msg.sender_username === username;
@@ -213,8 +223,8 @@ export default function MainChat() {
                         >
                             <div
                                 className={`rounded-2xl px-4 py-3 max-w-[75%] h-auto text-sm ${isOwn
-                                    ? 'bg-[#17AEE5] text-white rounded-br-none'
-                                    : 'bg-gray-200 text-gray-800 rounded-bl-none'
+                                    ? 'bg-[#8176EF] text-white rounded-br-none'
+                                    : 'bg-white text-gray-800 rounded-bl-none'
                                     }`}
                             >
                                 <div className="font-semibold text-xs mb-1">

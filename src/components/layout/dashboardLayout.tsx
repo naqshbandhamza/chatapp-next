@@ -3,7 +3,6 @@ import { Roboto, Inter, Montserrat } from 'next/font/google'
 import ProfileHeader from '@/components/layout/profileHeader';
 import MainChat from '../currentChat';
 import Chats from '../currentChats';
-import NewChat from '../newChat';
 
 const inter = Montserrat({
   weight: '400',
@@ -25,7 +24,6 @@ export default function DashboardLayout() {
           <MainChat />
         </div>
       </div>
-      <NewChat />
     </div>
   )
 }

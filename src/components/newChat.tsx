@@ -23,7 +23,7 @@ export default function NewChat() {
     const notify = (msg: string) => toast(msg);
 
     const dispatch = useDispatch();
-    
+
 
 
     const [open, setOpen] = useState(false);
@@ -35,7 +35,7 @@ export default function NewChat() {
         const message = textareaRef?.current?.value;
         const messageId = uuidv4(); // 👈 CLIENT UUID
 
-        if(target_username?.trim()==="" || message?.trim()===""){
+        if (target_username?.trim() === "" || message?.trim() === "") {
             notify("username and message cannot be empty");
             return;
         }
@@ -47,13 +47,14 @@ export default function NewChat() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ target_username, message, messageId, // 👈 send to backend
+                body: JSON.stringify({
+                    target_username, message, messageId, // 👈 send to backend
                 }),
             });
 
             const response = await res.json();
 
-            if(!response.success){
+            if (!response.success) {
                 notify(response.message)
                 return;
             }
@@ -62,12 +63,12 @@ export default function NewChat() {
 
             let net_result = {
                 ...rest, latest_message: messages[0]
-            }            
+            }
 
             dispatch(setChatId(net_result.chat_id))
             dispatch(appendChat(net_result))
             dispatch(setTargetUser({ token: null, id: null, username: target_username !== undefined ? target_username : null }))
-            
+
             setOpen(false)
 
         } catch (err: any) {
@@ -77,13 +78,15 @@ export default function NewChat() {
 
     return (
         <>
-            <button className='absolute top-[26px] right-[20px] text-gray-400 w-10 h-10 rounded-[50%]' 
-              style={{zIndex:"9998"}}
-            onClick={() => {
-                setOpen(prev => !prev)
-            }}>
+            <button
+                className='absolute top-[26px] right-[120px] text-gray-400 w-10 h-10 rounded-[50%]'
+                style={{ zIndex: "9998" }}
+                onClick={() => {
+                    setOpen(prev => !prev)
+                }}>
                 <Image src="/icons/new-message.svg" alt="new message" width={20} height={20} className='m-auto' />
             </button>
+
             <Modal isOpen={open} onClose={() => setOpen(false)}>
                 <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">
                     Start a Chat 💬
@@ -121,18 +124,18 @@ export default function NewChat() {
                     </div>
                 </div>
             </Modal>
-             <ToastContainer
-                            position="top-right"
-                            autoClose={5000}
-                            hideProgressBar={false}
-                            newestOnTop={false}
-                            closeOnClick={false}
-                            rtl={false}
-                            pauseOnFocusLoss
-                            draggable
-                            pauseOnHover
-                            theme="light"
-                        />
+            <ToastContainer
+                position="top-right"
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick={false}
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="light"
+            />
         </>
     )
 }
