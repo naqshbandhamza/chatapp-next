@@ -152,14 +152,14 @@ export default function MainChat() {
             dispatch(updateChats(res.data.content))
             if (chatIdRef.current === chatidd) {
                 setMessages((prev) => [...prev, res.data.content])
-                sendMessage({
-                    event_type: "read_receipt",
-                    content: {
-                        chatId: chatidd, senderId:id, lastMessageId: res.data.content.message_id
-                    }
-                }
-                );
-                dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatidd }))
+                // sendMessage({
+                //     event_type: "read_receipt",
+                //     content: {
+                //         chatId: chatidd, senderId:id, lastMessageId: res.data.content.message_id
+                //     }
+                // }
+                // );
+                // dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatidd }))
             }
 
         }
