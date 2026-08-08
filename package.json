@@ -16,7 +16,7 @@
     "cookie": "^1.0.2",
     "crypto-js": "^4.2.0",
     "framer-motion": "^12.23.3",
-    "next": "15.3.4",
+    "next": "15.3.8",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-redux": "^9.2.0",
