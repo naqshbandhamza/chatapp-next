@@ -86,6 +86,8 @@ export default function SignIn() {
         }
       );
 
+      console.log(res)
+
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.message || 'Login failed');
