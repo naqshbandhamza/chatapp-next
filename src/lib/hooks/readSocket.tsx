@@ -9,7 +9,7 @@ export const useReadStatusSocket = (chatId: string, onMessage: (msg: any) => voi
       const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
       const socket = new WebSocket(
-        `${protocol}://127.0.0.1:8000/ws/api/chat/readstatus/${chatId}/`
+        `${protocol}://${process.env.NEXT_PUBLIC_WS_URL}/ws/api/chat/readstatus/${chatId}/`
       );
 
       socketRef.current = socket;

@@ -9,7 +9,7 @@ export const useChatSocket = (chatId: string, onMessage: (msg: any) => void) => 
       const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
       const socket = new WebSocket(
-        `${protocol}://127.0.0.1:8000/ws/api/chat/${chatId}/`
+        `${protocol}://${process.env.NEXT_PUBLIC_WS_URL}/ws/api/chat/${chatId}/`
       );
 
       socketRef.current = socket;
