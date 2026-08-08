@@ -93,9 +93,9 @@ export default function SignIn() {
         throw new Error(err.message || 'Login failed');
       }
 
-      await res.json();
+      const ttt = await res.json();
 
-      console.log("here")
+      console.log("here",ttt)
 
       router.push('/profile');
     } catch (err: any) {
