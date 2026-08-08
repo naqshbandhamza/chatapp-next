@@ -95,6 +95,8 @@ export default function SignIn() {
 
       await res.json();
 
+      console.log("here")
+
       router.push('/profile');
     } catch (err: any) {
       setError(err.message);
