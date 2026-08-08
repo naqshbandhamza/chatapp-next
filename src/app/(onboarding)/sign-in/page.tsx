@@ -61,9 +61,6 @@ export default function SignIn() {
     const username = usernameRef.current?.value || '';
     const password = passwordRef.current?.value || '';
 
-  
-  const data = await response.json();
-
     try {
       // const res = await fetch('/api/login', {
       //   method: 'POST',
@@ -77,17 +74,17 @@ export default function SignIn() {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/chat/login/`,
         {
-            method: "POST",
-            credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                username,
-                password,
-            }),
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username,
+            password,
+          }),
         }
-    );
+      );
 
       if (!res.ok) {
         const err = await res.json();
