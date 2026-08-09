@@ -71,16 +71,12 @@ export default function SignIn() {
         body: JSON.stringify({ username, password }),
       });
 
-      console.log(res)
-
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.message || 'Login failed');
       }
 
-      const ttt = await res.json();
-
-      console.log("here",ttt)
+      //const ttt = await res.json();
 
       router.push('/profile');
     } catch (err: any) {

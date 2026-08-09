@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const loginRes: any = await axios.post(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/chat/login/`, // e.g. Django endpoint
       { username, password },
-      // { withCredentials: true }
+      { withCredentials: true }
     );
 
     const sdata = { "username": loginRes.data.username, "user_id": loginRes.data.user_id, "token": loginRes.data.token }
