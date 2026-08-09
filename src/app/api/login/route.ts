@@ -17,6 +17,8 @@ export async function POST(req: NextRequest) {
 
     const sdata = { "username": loginRes.data.username, "user_id": loginRes.data.user_id, "token": loginRes.data.token }
 
+    console.log("token: ",loginRes.data.token)
+
     const isProd = true;
 
     const cookieOptions = {
