@@ -39,7 +39,7 @@ export default async function DashboardPage() {
   const username = userDetails.success ? userDetails?.data?.username : "";
 
   //persist session state on refresh for client side
-  const user: User = { "token": null, "username": username, "id": id };
+  const user: User = { "token": token, "username": username, "id": id };
 
   return (
     <Providers user={user} currentChats={currentChats.data}>
