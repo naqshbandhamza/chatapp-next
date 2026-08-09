@@ -15,6 +15,7 @@ const store = makeStore();
 export function Providers({ children, user, currentChats }: { children: ReactNode, user: User, currentChats: Chat[] }) {
 
   if (user?.id) {
+    console.log("user in proivder: ",user)
     store.dispatch(setUser(user));
     store.dispatch(setChats(currentChats));
   }
