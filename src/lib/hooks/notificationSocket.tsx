@@ -1,15 +1,19 @@
 'use client';
 import { useEffect, useRef, useState } from "react";
+import { useSelector } from 'react-redux';
 
 export const useNotifcationSocket = (userId: string, onMessage: (msg: any) => void) => {
+
+  const { token } = useSelector((state: any) => state.user);
+  
+
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
       const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
       const socket = new WebSocket(
-         `${protocol}://${process.env.NEXT_PUBLIC_WS_URL}/ws/api/chat/notifications/`
-        // `${protocol}://localhost:8000/ws/api/chat/notifications/${userId}/`
+         `${protocol}://${process.env.NEXT_PUBLIC_WS_URL}/ws/api/chat/notifications/?token=${token}`
       );
 
       socketRef.current = socket;

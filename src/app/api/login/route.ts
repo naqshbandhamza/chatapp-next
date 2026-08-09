@@ -32,10 +32,10 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json(
       {
         success: true,
-        ws_auth_token: loginRes.data.token
+        //ws_auth_token: loginRes.data.token
       }
     );
-    
+
     response.cookies.set("session", enc, cookieOptions);
 
     return response;
