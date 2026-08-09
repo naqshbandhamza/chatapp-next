@@ -71,21 +71,6 @@ export default function SignIn() {
         body: JSON.stringify({ username, password }),
       });
 
-      // const res = await fetch(
-      //   `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/chat/login/`,
-      //   {
-      //     method: "POST",
-      //     credentials: "include",
-      //     headers: {
-      //       "Content-Type": "application/json",
-      //     },
-      //     body: JSON.stringify({
-      //       username,
-      //       password,
-      //     }),
-      //   }
-      // );
-
       console.log(res)
 
       if (!res.ok) {
