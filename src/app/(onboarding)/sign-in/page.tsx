@@ -76,7 +76,8 @@ export default function SignIn() {
         throw new Error(err.message || 'Login failed');
       }
 
-      //const ttt = await res.json();
+      const res_json = await res.json();
+      console.log(res_json);
 
       router.push('/profile');
     } catch (err: any) {

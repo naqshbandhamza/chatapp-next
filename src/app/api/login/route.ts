@@ -12,12 +12,9 @@ export async function POST(req: NextRequest) {
     const loginRes: any = await axios.post(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/chat/login/`, // e.g. Django endpoint
       { username, password },
-      { withCredentials: true }
     );
 
     const sdata = { "username": loginRes.data.username, "user_id": loginRes.data.user_id, "token": loginRes.data.token }
-
-    console.log("token: ",loginRes.data.token)
 
     const isProd = true;
 
@@ -31,19 +28,15 @@ export async function POST(req: NextRequest) {
 
     let enc = await encrypt(JSON.stringify(sdata));
 
-    const djangoCookie = loginRes.headers["set-cookie"];
-
     // Forward cookie from Django backend if any
-    const response = NextResponse.json({ success: true });
+    const response = NextResponse.json(
+      {
+        success: true,
+        ws_auth_token: loginRes.data.token
+      }
+    );
+    
     response.cookies.set("session", enc, cookieOptions);
-    //response.cookies.set("ws_auth_token", loginRes.data.token, cookieOptions);
-
-    if (djangoCookie) {
-      response.headers.set(
-        "Set-Cookie",
-        djangoCookie.join(", ")
-      );
-    }
 
     return response;
   } catch (error: any) {
