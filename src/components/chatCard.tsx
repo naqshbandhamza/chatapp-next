@@ -15,7 +15,8 @@ export default function ChatCard({ chat, username, id, latest, participantUserna
 
     const dispatch = useDispatch();
 
-
+    //console.log(latest.message_id);
+    //console.log(chat.read_status.last_read_message_id);
 
     return (
         <>
