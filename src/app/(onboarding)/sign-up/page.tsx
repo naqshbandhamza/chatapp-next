@@ -105,11 +105,29 @@ export default function SignUp() {
 
       const res_json = await res.json();
 
-      if (res_json.success)
-        router.push('/sign-in');
+      // if (res_json.success)
+      //   router.push('/sign-in');
 
-
+      // if (!res.ok) {
+      //   setError(
+      //     res_json.error ||
+      //     res_json.message ||
+      //     'Registration failed'
+      //   );
+      //   setLoading(false);
+      //   return;
+      // }
+  
+      if (res_json?.data?.verification_required) {
+        router.push(
+          `/verify-email?email=${email}`
+        );
+        return;
+      }
+  
+      setError('Something went wrong. Please try again.');
       setError(res_json.message)
+
       setLoading(false)
     } catch (err: any) {
       setLoading(false)

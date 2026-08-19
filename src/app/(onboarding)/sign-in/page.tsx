@@ -58,8 +58,14 @@ export default function SignIn() {
     setLoading(true);
     setError('');
 
-    const username = usernameRef.current?.value || '';
+    const username = usernameRef.current?.value.trim() || '';
     const password = passwordRef.current?.value || '';
+
+    if (!username || !password) {
+      setError('Username and password are required.');
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch('/api/login', {
@@ -68,24 +74,63 @@ export default function SignIn() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          username,
+          password,
+        }),
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Login failed');
+      const res_json = await res.json();
+
+      // Email has not been verified
+      if (
+        res_json?.data?.email_verified === false
+      ) {
+        router.push(
+          `/verify-email?email=${res_json.data.email}`
+        );
+        return;
       }
 
-      const res_json = await res.json();
-      console.log(res_json);
-
+      // Successful login
       router.push('/profile');
-    } catch (err: any) {
-      setError(err.message);
+
+    } catch (err) {
+      setError('Unable to connect to the server.');
     } finally {
       setLoading(false);
     }
   };
+
+  // const handleLogin = async () => {
+  //   setLoading(true);
+  //   setError('');
+
+  //   const username = usernameRef.current?.value || '';
+  //   const password = passwordRef.current?.value || '';
+
+  //   try {
+  //     const res = await fetch('/api/login', {
+  //       method: 'POST',
+  //       credentials: 'include',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({ username, password }),
+  //     });
+
+  //     if (!res.ok) {
+  //       const err = await res.json();
+  //       throw new Error(err.message || 'Login failed');
+  //     }
+
+  //     router.push('/profile');
+  //   } catch (err: any) {
+  //     setError(err.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   return (
     <div className={`${display.variable} ${body.variable}`} style={{ fontFamily: 'var(--font-body)' }}>

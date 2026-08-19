@@ -14,7 +14,16 @@ export async function POST(req: NextRequest) {
       { username, password },
     );
 
+    if (loginRes?.data?.email_verified === false){
+      return NextResponse.json(
+        {
+          success: true,
+          data: loginRes.data,
+        })
+    }
+
     const sdata = { "username": loginRes.data.username, "user_id": loginRes.data.user_id, "token": loginRes.data.token }
+    console.log(sdata)
 
     const isProd = true;
 
@@ -28,11 +37,9 @@ export async function POST(req: NextRequest) {
 
     let enc = await encrypt(JSON.stringify(sdata));
 
-    // Forward cookie from Django backend if any
     const response = NextResponse.json(
       {
         success: true,
-        //ws_auth_token: loginRes.data.token
       }
     );
 

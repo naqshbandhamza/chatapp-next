@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic';
 import { decrypt } from '@/lib/session' // Your custom encryption function
-import Image from "next/image";
 import { Montserrat } from 'next/font/google';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
