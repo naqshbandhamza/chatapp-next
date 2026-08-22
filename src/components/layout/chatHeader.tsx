@@ -215,7 +215,7 @@ import { clearUser } from '@/store/slices/userSlice';
 import { clearTargetUser } from '@/store/slices/targetUserSlice';
 import { resetChatId } from '@/store/slices/selectedChat';
 import { clearChats } from '@/store/slices/chatSlice';
-import NewChat from '../newChat';
+import NewChat from '@/components/modules/chat/newChat';
 
 const montserrat = Montserrat({
     weight: ['400', '600', '700'],

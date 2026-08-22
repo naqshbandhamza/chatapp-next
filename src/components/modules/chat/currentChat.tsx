@@ -228,8 +228,6 @@ export default function MainChat() {
 
     const { sendMessage } = useNotifcationSocket(id, (res) => {
 
-        console.log(" tempppp: ", res)
-
         if (res.data.event_type === "new_chat") {
 
             const { messages, ...rest } = res.data.content.chat;
@@ -418,13 +416,14 @@ export default function MainChat() {
                 </div>
 
                 {/* INPUT */}
+                {chatIdRef.current!==null && (
                 <ChatInput
                     id={id}
                     chatid={Number(chatid)}
                     username={username}
                     sendMessage={sendMessage}
                     MessageSentSuccessfully={MessageSentSuccessfully}
-                />
+                />)}
 
             </div>
         </>
