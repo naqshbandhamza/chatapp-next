@@ -11,29 +11,67 @@ const inter = Montserrat({
     subsets: ['latin'],
 })
 
+// export default function Chats() {
+
+//     const dispatch = useDispatch();
+
+//     console.log("Chats list Rendered")
+//     const { username, id } = useSelector((state: any) => state.user);
+//     const chats: Chat[] = useSelector((state: any) => state.chats.chats);
+
+//     console.log(username, "user chats list: ",chats);
+
+//     return (
+//         <div className="w-full max-w-xl mx-auto space-y-4 bg-white">
+//             {chats !== undefined && (
+//                 chats.map((chat, indx) => {
+//                     const latest = chat.latest_message;
+//                     const participantUsernames = chat.participants
+//                         .map((p) => p.username);
+
+//                     return (
+//                         <ChatCard chat={chat} key={indx} id={id} username={username} latest={latest} participantUsernames={participantUsernames} />
+//                     );
+//                 })
+//             )}
+//         </div>
+//     )
+// }
+
 export default function Chats() {
+    const { username, id } = useSelector(
+        (state: any) => state.user
+    );
 
-    const dispatch = useDispatch();
-
-    console.log("Chats list Rendered")
-    const { username, id } = useSelector((state: any) => state.user);
-    const chats: Chat[] = useSelector((state: any) => state.chats.chats);
-
-    console.log(username, "user chats list: ",chats);
+    const chats: Chat[] = useSelector(
+        (state: any) => state.chats.chats
+    );
 
     return (
-        <div className="w-full max-w-xl mx-auto space-y-4 bg-white">
-            {chats !== undefined && (
-                chats.map((chat, indx) => {
-                    const latest = chat.latest_message;
-                    const participantUsernames = chat.participants
-                        .map((p) => p.username);
+        <div className="flex w-full flex-col bg-white">
 
-                    return (
-                        <ChatCard chat={chat} key={indx} id={id} username={username} latest={latest} participantUsernames={participantUsernames} />
+            {chats?.map((chat) => {
+                const latest = chat.latest_message;
+
+                const participantUsernames =
+                    chat.participants.map(
+                        (p) => p.username
                     );
-                })
-            )}
+
+                return (
+                    <ChatCard
+                        chat={chat}
+                        key={id}
+                        id={id}
+                        username={username}
+                        latest={latest}
+                        participantUsernames={
+                            participantUsernames
+                        }
+                    />
+                );
+            })}
+
         </div>
-    )
+    );
 }

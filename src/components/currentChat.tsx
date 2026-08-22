@@ -19,7 +19,7 @@ const inter = Montserrat({
     subsets: ['latin'],
 })
 
-function ChatInput({ id, chatid, username,  sendMessage, MessageSentSuccessfully }: { id: number, chatid: number, username: string,  sendMessage: any, MessageSentSuccessfully: any }) {
+function ChatInput({ id, chatid, username, sendMessage, MessageSentSuccessfully }: { id: number, chatid: number, username: string, sendMessage: any, MessageSentSuccessfully: any }) {
 
     const notify = (msg: string) => toast(msg);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -41,7 +41,7 @@ function ChatInput({ id, chatid, username,  sendMessage, MessageSentSuccessfully
 
         if (!content) {
             return; // Don't send empty messages
-        }    
+        }
 
         if (content !== undefined) {
 
@@ -70,6 +70,8 @@ function ChatInput({ id, chatid, username,  sendMessage, MessageSentSuccessfully
     }
 
     return (
+        <>
+            {/*
         <div className="absolute bottom-0 left-0 w-full min-h-[110px] bg-white"
             ref={textareaContainerRef}
         >
@@ -107,7 +109,103 @@ function ChatInput({ id, chatid, username,  sendMessage, MessageSentSuccessfully
                 pauseOnHover
                 theme="light"
             />
-        </div>
+        </div> */}
+
+            <div
+                ref={textareaContainerRef}
+                className="
+            shrink-0
+            w-full
+            border-t border-gray-100
+            bg-white/95
+            px-3 py-3
+            backdrop-blur-md
+            sm:px-5
+            sm:py-4
+        "
+            >
+
+                {chatid !== null && !Number.isNaN(chatid) && (
+                    <div className="mx-auto flex w-full max-w-4xl items-end gap-2">
+
+                        <textarea
+                            ref={textareaRef}
+                            onInput={handleInput}
+                            onKeyDown={(e) => {
+                                if (
+                                    e.key === 'Enter' &&
+                                    !e.shiftKey
+                                ) {
+                                    e.preventDefault();
+                                    handleMessageSend();
+                                }
+                            }}
+                            placeholder="Type a message..."
+                            rows={1}
+                            className="
+                        min-h-[48px]
+                        max-h-[140px]
+                        flex-1
+                        resize-none
+                        overflow-y-auto
+                        rounded-2xl
+                        border border-gray-200
+                        bg-gray-50
+                        px-4 py-3
+                        text-sm
+                        outline-none
+                        transition
+                        focus:border-purple-300
+                        focus:bg-white
+                        focus:ring-2
+                        focus:ring-purple-100
+                    "
+                        />
+
+                        <button
+                            onClick={handleMessageSend}
+                            aria-label="Send message"
+                            className="
+                        flex
+                        h-11 w-11
+                        shrink-0
+                        items-center
+                        justify-center
+                        rounded-full
+                        text-white
+                        shadow-sm
+                        transition
+                        hover:opacity-90
+                        active:scale-95
+                    "
+                            style={{
+                                background:
+                                    'linear-gradient(135deg, #7B6EF6, #6C5CE7)',
+                            }}
+                        >
+                            <Image
+                                src="/icons/send.svg"
+                                alt=""
+                                width={19}
+                                height={19}
+                            />
+                        </button>
+
+                    </div>
+                )}
+
+                <ToastContainer
+                    position="top-right"
+                    autoClose={5000}
+                    hideProgressBar
+                    closeOnClick
+                    pauseOnFocusLoss
+                    draggable
+                    pauseOnHover
+                    theme="light"
+                />
+            </div>
+        </>
     );
 }
 
@@ -142,12 +240,12 @@ export default function MainChat() {
 
             dispatch(updateChats(messages[0]))
 
-        } else if(res.data.event_type === "new_message") {
-            console.log("new msg",res)
+        } else if (res.data.event_type === "new_message") {
+            console.log("new msg", res)
 
             let chatidd = res.data.content.chat;
-            if(typeof chatidd!=='number')
-                chatidd=parseInt(chatidd)
+            if (typeof chatidd !== 'number')
+                chatidd = parseInt(chatidd)
 
             dispatch(updateChats(res.data.content))
             if (chatIdRef.current === chatidd) {
@@ -155,7 +253,7 @@ export default function MainChat() {
                 sendMessage({
                     event_type: "read_receipt",
                     content: {
-                        chatId: chatidd, senderId:id, lastMessageId: res.data.content.message_id
+                        chatId: chatidd, senderId: id, lastMessageId: res.data.content.message_id
                     }
                 }
                 );
@@ -212,6 +310,8 @@ export default function MainChat() {
     }
 
     return (
+        <>
+            {/*
         <div className='h-[90%] w-[100%] text-gray-900 relative bg-[#F6F2FA]'>
             <div className="w-full px-4 py-6 rounded-lg h-[80vh] overflow-y-auto space-y-4 pb-[80px]">
                 {messages.map((msg: any) => {
@@ -237,6 +337,96 @@ export default function MainChat() {
                 })}
             </div>
             <ChatInput id={id} chatid={parseInt(chatid)} username={username} sendMessage={sendMessage}  MessageSentSuccessfully={MessageSentSuccessfully} />
-        </div>
+        </div>*/}
+
+            <div className="flex h-full min-h-0 flex-col bg-[#F7F3FA]">
+
+                {/* MESSAGES */}
+                <div
+                    className="
+                        min-h-0
+                        flex-1
+                        overflow-y-auto
+                        px-3 py-4
+                        sm:px-5
+                        sm:py-6
+                    "
+                >
+                    <div className="mx-auto flex w-full max-w-4xl flex-col gap-3">
+
+                        {messages.map((msg: any) => {
+                            const isOwn =
+                                msg.sender_username === username;
+
+                            return (
+                                <div
+                                    key={msg.message_id}
+                                    className={`
+                                        flex
+                                        ${isOwn
+                                            ? 'justify-end'
+                                            : 'justify-start'
+                                        }
+                                    `}
+                                >
+                                    <div
+                                        className={`
+                                            max-w-[82%]
+                                            sm:max-w-[70%]
+                                            rounded-2xl
+                                            px-4 py-3
+                                            text-sm
+                                            leading-relaxed
+                                            shadow-sm
+                                            ${isOwn
+                                                ? `
+                                                        rounded-br-md
+                                                        bg-[#8176EF]
+                                                        text-white
+                                                      `
+                                                : `
+                                                        rounded-bl-md
+                                                        bg-white
+                                                        text-gray-800
+                                                      `
+                                            }
+                                        `}
+                                    >
+                                        <div
+                                            className={`
+                                                mb-1
+                                                text-[11px]
+                                                font-semibold
+                                                ${isOwn
+                                                    ? 'text-white/70'
+                                                    : 'text-gray-400'
+                                                }
+                                            `}
+                                        >
+                                            {msg.sender_username}
+                                        </div>
+
+                                        <div className="break-words">
+                                            {msg.content}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                    </div>
+                </div>
+
+                {/* INPUT */}
+                <ChatInput
+                    id={id}
+                    chatid={Number(chatid)}
+                    username={username}
+                    sendMessage={sendMessage}
+                    MessageSentSuccessfully={MessageSentSuccessfully}
+                />
+
+            </div>
+        </>
     )
 }
