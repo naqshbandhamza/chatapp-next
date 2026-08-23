@@ -3,14 +3,11 @@ import Image from 'next/image';
 import { Montserrat } from 'next/font/google'
 import { useDispatch, useSelector } from 'react-redux';
 import React, { useRef } from 'react';
-import { Message } from '@/types/chatTypes';
 import { ToastContainer, toast } from 'react-toastify';
-//import { useChatSocket } from '@/lib/hooks/socket';
-//import { useReadStatusSocket } from '@/lib/hooks/readSocket';
-import { updateChatsReadStatus } from '@/store/slices/chatSlice';
-import { useNotifcationSocket } from '@/lib/hooks/notificationSocket';
-import { appendChat } from '@/store/slices/chatSlice';
-import { updateChats } from '@/store/slices/chatSlice';
+import { updateChatsReadStatus,updateMessages } from '@/store/slices/chatSlice';
+//import { useNotifcationSocket } from '@/lib/hooks/notificationSocket';
+//import { appendChat } from '@/store/slices/chatSlice';
+//import { updateChats } from '@/store/slices/chatSlice';
 import { v4 as uuidv4 } from "uuid";
 
 
@@ -19,7 +16,11 @@ const inter = Montserrat({
     subsets: ['latin'],
 })
 
-function ChatInput({ id, chatid, username, sendMessage, MessageSentSuccessfully }: { id: number, chatid: number, username: string, sendMessage: any, MessageSentSuccessfully: any }) {
+function ChatInput({ id, chatid, username, sendMessage, 
+    //MessageSentSuccessfully 
+}: { id: number, chatid: number, username: string, sendMessage: any
+    //, MessageSentSuccessfully: any 
+}) {
 
     const notify = (msg: string) => toast(msg);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -71,46 +72,6 @@ function ChatInput({ id, chatid, username, sendMessage, MessageSentSuccessfully 
 
     return (
         <>
-            {/*
-        <div className="absolute bottom-0 left-0 w-full min-h-[110px] bg-white"
-            ref={textareaContainerRef}
-        >
-            {chatid !== null && !Number.isNaN(chatid) && (
-                <>
-                    <textarea
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleMessageSend();
-                            }
-                        }}
-                        ref={textareaRef}
-                        onInput={handleInput}
-                        placeholder="Type your message here..."
-                        className="absolute w-[85%] min-h-[60px] max-h-[300px] overflow-y-auto border border-solid border-[#E6E6E6] right-[20px] top-[10px] rounded-[24px] p-[20px] resize-none"
-                    >
-                    </textarea>
-                    <button className='w-10 h-10 rounded-[50%]  absolute bottom-[25px] right-[35px]' onClick={() => {
-                        handleMessageSend();
-                    }}>
-                        <Image src="/icons/send.svg" alt="Send" width={20} height={20} className='m-auto' />
-                    </button>
-                </>
-            )}
-            <ToastContainer
-                position="top-right"
-                autoClose={5000}
-                hideProgressBar={false}
-                newestOnTop={false}
-                closeOnClick={false}
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-                theme="light"
-            />
-        </div> */}
-
             <div
                 ref={textareaContainerRef}
                 className="
@@ -209,7 +170,11 @@ function ChatInput({ id, chatid, username, sendMessage, MessageSentSuccessfully 
     );
 }
 
-export default function MainChat() {
+interface DashboardLayoutProps {
+    sendMessage: (id: any) => void;
+}
+
+export default function MainChat({ sendMessage }: DashboardLayoutProps) {
 
     console.log("Main Chat Rendered")
 
@@ -219,52 +184,53 @@ export default function MainChat() {
     const { id: chatid } = useSelector((state: any) => state.selectedChat);
     const chatIdRef = React.useRef<string | null>(null);
     const { username, id } = useSelector((state: any) => state.user);
-
+    const { messages } = useSelector((state: any) => state.chats);
 
     const dispatch = useDispatch();
-    const [messages, setMessages] = React.useState<Message[]>([]);
+    //const [messages, setMessages] = React.useState<Message[]>([]);
     //const [participants,setParticipants] = React.useState<string[]>([]);
 
 
-    const { sendMessage } = useNotifcationSocket(id, (res) => {
+    // const { sendMessage } = useNotifcationSocket(id, (res) => {
 
-        if (res.data.event_type === "new_chat") {
+    //     if (res.data.event_type === "new_chat") {
 
-            const { messages, ...rest } = res.data.content.chat;
-            let net_result = {
-                ...rest, latest_message: messages[0]
-            }
-            dispatch(appendChat(net_result))
+    //         const { messages, ...rest } = res.data.content.chat;
+    //         let net_result = {
+    //             ...rest, latest_message: messages[0]
+    //         }
+    //         dispatch(appendChat(net_result))
 
-            dispatch(updateChats(messages[0]))
+    //         dispatch(updateChats(messages[0]))
 
-        } else if (res.data.event_type === "new_message") {
-            console.log("new msg", res)
+    //     } else if (res.data.event_type === "new_message") {
+    //         console.log("new msg", res)
 
-            let chatidd = res.data.content.chat;
-            if (typeof chatidd !== 'number')
-                chatidd = parseInt(chatidd)
+    //         let chatidd = res.data.content.chat;
+    //         if (typeof chatidd !== 'number')
+    //             chatidd = parseInt(chatidd)
 
-            dispatch(updateChats(res.data.content))
-            if (chatIdRef.current === chatidd) {
-                setMessages((prev) => [...prev, res.data.content])
-                sendMessage({
-                    event_type: "read_receipt",
-                    content: {
-                        chatId: chatidd, senderId: id, lastMessageId: res.data.content.message_id
-                    }
-                }
-                );
-                dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatidd }))
-            }
+    //         dispatch(updateChats(res.data.content))
+    //         if (chatIdRef.current === chatidd) {
+    //             setMessages((prev) => [...prev, res.data.content])
+    //             sendMessage({
+    //                 event_type: "read_receipt",
+    //                 content: {
+    //                     chatId: chatidd, senderId: id, lastMessageId: res.data.content.message_id
+    //                 }
+    //             }
+    //             );
+    //             dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatidd }))
+    //         }
 
-        }
+    //     }
 
-    });
+    // });
 
 
     const getChatDetails = async (chatId: number) => {
         try {
+
             const res = await fetch('/api/chatdetails', {
                 method: 'POST',
                 credentials: 'include',
@@ -277,9 +243,11 @@ export default function MainChat() {
             const response = await res.json();
             console.log("res res ttt", response)
             //setParticipants([response.data.created_by,response.data.participants[0].user])
-            setMessages(response.data.messages)
+            //setMessages(response.data.messages)
+            dispatch(updateMessages(response.data.messages));
             console.log("from getchatdetails :", chatId)
             dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatId }))
+
 
         } catch (err: any) {
             alert('could not fetch chat details due to some problem')
@@ -298,44 +266,8 @@ export default function MainChat() {
         }
     }, [chatid])
 
-    const MessageSentSuccessfully = (data: Message) => {
-
-        setMessages((prev) => [...prev, data])
-        if (data.sender_username !== username || true) {
-            //sendChatReadStatus(chatid, id, data.message_id.toString())
-            //sendChatReadStatus(chatid, id, data.message_id)
-        }
-    }
-
     return (
         <>
-            {/*
-        <div className='h-[90%] w-[100%] text-gray-900 relative bg-[#F6F2FA]'>
-            <div className="w-full px-4 py-6 rounded-lg h-[80vh] overflow-y-auto space-y-4 pb-[80px]">
-                {messages.map((msg: any) => {
-                    const isOwn = msg.sender_username === username;
-                    return (
-                        <div
-                            key={msg.message_id}
-                            className={`h-auto flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-                        >
-                            <div
-                                className={`rounded-2xl px-4 py-3 max-w-[75%] h-auto text-sm ${isOwn
-                                    ? 'bg-[#8176EF] text-white rounded-br-none'
-                                    : 'bg-white text-gray-800 rounded-bl-none'
-                                    }`}
-                            >
-                                <div className="font-semibold text-xs mb-1">
-                                    {msg.sender_username}
-                                </div>
-                                <div className='h-auto'>{msg.content}</div>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-            <ChatInput id={id} chatid={parseInt(chatid)} username={username} sendMessage={sendMessage}  MessageSentSuccessfully={MessageSentSuccessfully} />
-        </div>*/}
 
             <div className="flex h-full min-h-0 flex-col bg-[#F7F3FA]">
 
@@ -352,13 +284,13 @@ export default function MainChat() {
                 >
                     <div className="mx-auto flex w-full max-w-4xl flex-col gap-3">
 
-                        {messages.map((msg: any) => {
+                        {messages.map((msg: any,idx:number) => {
                             const isOwn =
                                 msg.sender_username === username;
 
                             return (
                                 <div
-                                    key={msg.message_id}
+                                    key={idx}
                                     className={`
                                         flex
                                         ${isOwn
@@ -416,14 +348,14 @@ export default function MainChat() {
                 </div>
 
                 {/* INPUT */}
-                {chatIdRef.current!==null && (
-                <ChatInput
-                    id={id}
-                    chatid={Number(chatid)}
-                    username={username}
-                    sendMessage={sendMessage}
-                    MessageSentSuccessfully={MessageSentSuccessfully}
-                />)}
+                {chatIdRef.current !== null && (
+                    <ChatInput
+                        id={id}
+                        chatid={Number(chatid)}
+                        username={username}
+                        sendMessage={sendMessage}
+                        //MessageSentSuccessfully={MessageSentSuccessfully}
+                    />)}
 
             </div>
         </>

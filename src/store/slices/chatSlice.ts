@@ -8,12 +8,14 @@ interface ChatState {
   chats: Chat[];
   loading: boolean;
   error: string | null;
+  messages: Message[];
 }
 
 const initialState: ChatState = {
   chats: [],
   loading: false,
   error: null,
+  messages: []
 };
 
 export const chatSlice = createSlice({
@@ -21,7 +23,7 @@ export const chatSlice = createSlice({
   initialState,
   reducers: {
     setChats(state, action: PayloadAction<Chat[]>) {
-      
+
       state.chats = action.payload;
     },
     setLoading(state, action: PayloadAction<boolean>) {
@@ -35,11 +37,14 @@ export const chatSlice = createSlice({
       state.error = null;
       state.loading = false;
     },
+    updateMessages(state, action: PayloadAction<Message[]>) {
+      state.messages = [...state.messages, ...action.payload];
+    },
     updateChats(state, action: PayloadAction<Message>) {
       const newMessage = action.payload;
-      console.log("new msg: ",newMessage)
-      
-      let tttt:any = newMessage.chat;
+      console.log("new msg: ", newMessage)
+
+      let tttt: any = newMessage.chat;
       // Find the index of the chat this message belongs to
       const chatIndex = state.chats.findIndex(chat => chat.chat_id === parseInt(tttt));
 
@@ -55,24 +60,24 @@ export const chatSlice = createSlice({
       }
     },
     updateChatsReadStatus(state, action: PayloadAction<any>) {
-      
+
       let chatid = action.payload.chat_id;
-      if(typeof chatid!=='number')
-        chatid=parseInt(chatid)
+      if (typeof chatid !== 'number')
+        chatid = parseInt(chatid)
       // Find the index of the chat this message belongs to
       const chatIndex = state.chats.findIndex(chat => chat.chat_id === chatid)
 
       if (chatIndex !== -1) {
         // Update latest_message 
         state.chats[chatIndex].read_status.last_read_message_id = state.chats[chatIndex].latest_message?.message_id;
-      } 
+      }
     },
     appendChat(state, action: PayloadAction<Chat>) {
       const newChat = action.payload;
-      state.chats = [newChat,...state.chats]
+      state.chats = [newChat, ...state.chats]
     },
   },
 });
 
-export const { setChats, setLoading, setError, clearChats, updateChats,appendChat,updateChatsReadStatus } = chatSlice.actions;
+export const { setChats, setLoading, setError, clearChats, updateChats, appendChat, updateChatsReadStatus, updateMessages } = chatSlice.actions;
 export default chatSlice.reducer;

@@ -15,9 +15,6 @@ export default function ChatCard({ chat, username, id, latest, participantUserna
 
     const dispatch = useDispatch();
 
-    //console.log(latest.message_id);
-    //console.log(chat.read_status.last_read_message_id);
-
     return (
         <>
             {chat !== undefined && (
@@ -41,6 +38,7 @@ export default function ChatCard({ chat, username, id, latest, participantUserna
                 "
                     onClick={() => {
 
+                        console.log("the issueee:",chat.chat_id)
                         dispatch(setChatId(chat.chat_id))
                         console.log(participantUsernames)
                         let target_username = participantUsernames[0] === username ? participantUsernames[1] : participantUsernames[0];

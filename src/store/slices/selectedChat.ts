@@ -16,7 +16,6 @@ export const selectedChatSlice = createSlice({
     reducers: {
         setChatId: (state, action: PayloadAction<number>) => {
             state.id = action.payload;
-            
         },
         resetChatId: (state) => {
             state.id = null;
