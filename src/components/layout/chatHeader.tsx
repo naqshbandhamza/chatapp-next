@@ -214,7 +214,7 @@ import { useRouter } from 'next/navigation';
 import { clearUser } from '@/store/slices/userSlice';
 import { clearTargetUser } from '@/store/slices/targetUserSlice';
 import { resetChatId } from '@/store/slices/selectedChat';
-import { clearChats } from '@/store/slices/chatSlice';
+import { clearChats,clearMessages } from '@/store/slices/chatSlice';
 import NewChat from '@/components/modules/chat/newChat';
 
 const montserrat = Montserrat({
@@ -251,6 +251,7 @@ export default function ProfileHeader({
                 dispatch(clearUser());
                 dispatch(clearTargetUser());
                 dispatch(resetChatId());
+                dispatch(clearMessages())
                 dispatch(clearChats());
 
                 router.push('/sign-in');
@@ -262,6 +263,7 @@ export default function ProfileHeader({
 
     const handleBack = () => {
         dispatch(resetChatId());
+        dispatch(clearMessages())
     };
 
     return (

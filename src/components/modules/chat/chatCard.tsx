@@ -1,9 +1,9 @@
 'use client';
 import { Montserrat } from 'next/font/google'
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setChatId } from '@/store/slices/selectedChat';
 import { setTargetUser } from '@/store/slices/targetUserSlice';
-import { updateChatsReadStatus, updateChats } from '@/store/slices/chatSlice';
+import { updateChatsReadStatus, updateChats, clearMessages } from '@/store/slices/chatSlice';
 import React from 'react';
 
 const inter = Montserrat({
@@ -14,6 +14,8 @@ const inter = Montserrat({
 export default function ChatCard({ chat, username, id, latest, participantUsernames }: { chat: any, username: any, id: any, latest: any, participantUsernames: any }) {
 
     const dispatch = useDispatch();
+    const { id: chatid } = useSelector((state: any) => state.selectedChat);
+
 
     return (
         <>
@@ -37,18 +39,21 @@ export default function ChatCard({ chat, username, id, latest, participantUserna
                     hover:shadow-sm
                 "
                     onClick={() => {
+                        console.log(chat.chat_id,chatid)
+                        if (chat.chat_id !== chatid) {
+                            console.log("the issueee:", chat.chat_id)
+                            dispatch(clearMessages())
+                            dispatch(setChatId(chat.chat_id))
+                            console.log(participantUsernames)
+                            let target_username = participantUsernames[0] === username ? participantUsernames[1] : participantUsernames[0];
+                            dispatch(setTargetUser({ username: target_username, id: null, token: null }));
 
-                        console.log("the issueee:",chat.chat_id)
-                        dispatch(setChatId(chat.chat_id))
-                        console.log(participantUsernames)
-                        let target_username = participantUsernames[0] === username ? participantUsernames[1] : participantUsernames[0];
-                        dispatch(setTargetUser({ username: target_username, id: null, token: null }));
-
-                        let ele = document.getElementById("left-bar");
-                        let ele1 = document.getElementById("right-bar");
-                        if (ele && ele1) {
-                            ele.style.zIndex = '1';
-                            ele1.style.zIndex = '2';
+                            let ele = document.getElementById("left-bar");
+                            let ele1 = document.getElementById("right-bar");
+                            if (ele && ele1) {
+                                ele.style.zIndex = '1';
+                                ele1.style.zIndex = '2';
+                            }
                         }
                     }}
                 >

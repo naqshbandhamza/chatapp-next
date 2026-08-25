@@ -4,7 +4,7 @@ import { Montserrat } from 'next/font/google'
 import { useDispatch, useSelector } from 'react-redux';
 import React, { useRef } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
-import { updateChatsReadStatus,updateMessages } from '@/store/slices/chatSlice';
+import { updateChatsReadStatus,updateMessages,clearMessages } from '@/store/slices/chatSlice';
 //import { useNotifcationSocket } from '@/lib/hooks/notificationSocket';
 //import { appendChat } from '@/store/slices/chatSlice';
 //import { updateChats } from '@/store/slices/chatSlice';
@@ -244,6 +244,7 @@ export default function MainChat({ sendMessage }: DashboardLayoutProps) {
             console.log("res res ttt", response)
             //setParticipants([response.data.created_by,response.data.participants[0].user])
             //setMessages(response.data.messages)
+            dispatch(clearMessages())
             dispatch(updateMessages(response.data.messages));
             console.log("from getchatdetails :", chatId)
             dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatId }))

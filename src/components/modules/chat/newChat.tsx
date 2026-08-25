@@ -6,7 +6,7 @@ import { User } from '@/types/User';
 import { useSelector, useDispatch } from 'react-redux';
 import React, { useRef, useState } from 'react';
 import { Message } from '@/types/chatTypes';
-import { appendChat } from '@/store/slices/chatSlice';
+import { appendChat,clearMessages } from '@/store/slices/chatSlice';
 import { setChatId } from '@/store/slices/selectedChat';
 import { setTargetUser } from '@/store/slices/targetUserSlice';
 import Modal from '@/components/ui/modal';
@@ -64,7 +64,7 @@ export default function NewChat() {
             let net_result = {
                 ...rest, latest_message: messages[0]
             }
-
+            
             dispatch(setChatId(net_result.chat_id))
             dispatch(appendChat(net_result))
             dispatch(setTargetUser({ token: null, id: null, username: target_username !== undefined ? target_username : null }))

@@ -40,6 +40,9 @@ export const chatSlice = createSlice({
     updateMessages(state, action: PayloadAction<Message[]>) {
       state.messages = [...state.messages, ...action.payload];
     },
+    clearMessages(state) {
+      state.messages = [];
+    },
     updateChats(state, action: PayloadAction<Message>) {
       const newMessage = action.payload;
       console.log("new msg: ", newMessage)
@@ -79,5 +82,5 @@ export const chatSlice = createSlice({
   },
 });
 
-export const { setChats, setLoading, setError, clearChats, updateChats, appendChat, updateChatsReadStatus, updateMessages } = chatSlice.actions;
+export const { setChats, setLoading, setError, clearChats, updateChats, appendChat, updateChatsReadStatus, updateMessages,clearMessages } = chatSlice.actions;
 export default chatSlice.reducer;
