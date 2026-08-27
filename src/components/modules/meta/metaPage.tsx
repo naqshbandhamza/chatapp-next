@@ -25,29 +25,59 @@ import {
     MetaAdsResponse,
     Insight,
     MetaInsightsResponse,
-  } from "@/types/meta.types";
+} from "@/types/meta.types";
 
 
 import { DrilldownState, DrilldownAction, initialDrilldownState } from "./state/drilldown.reducer";
-import {drilldownReducer} from "./state/drilldown.reducer";
+import { drilldownReducer } from "./state/drilldown.reducer";
+
+// type LoadingState = {
+//     meta: boolean;
+//     campaigns: boolean;
+//     adSets: boolean;
+//     ads: boolean;
+//     insights: boolean;
+// };
 
 type LoadingState = {
     meta: boolean;
+
     campaigns: boolean;
     adSets: boolean;
     ads: boolean;
     insights: boolean;
+
+    syncAccounts: boolean;
+    syncCampaigns: boolean;
+    syncAdSets: boolean;
+    syncAds: boolean;
+    syncInsights: boolean;
 };
 
 const initialLoadingState: LoadingState = {
     meta: true,
+
     campaigns: false,
     adSets: false,
     ads: false,
     insights: false,
+
+    syncAccounts: false,
+    syncCampaigns: false,
+    syncAdSets: false,
+    syncAds: false,
+    syncInsights: false,
 };
 
-import { apiGet } from "./api/api-client";
+// const initialLoadingState: LoadingState = {
+//     meta: true,
+//     campaigns: false,
+//     adSets: false,
+//     ads: false,
+//     insights: false,
+// };
+
+import { apiGet, apiPost } from "./api/api-client";
 
 import { InfoBox } from "./components/InfoBox";
 import { SectionHeader } from "./components/SectionHeader";
@@ -286,6 +316,132 @@ export default function MetaPage() {
             }
         },
         [token, setLoading],
+    );
+
+    const syncAdAccounts = useCallback(async () => {
+        try {
+            setLoading("syncAccounts", true);
+            setError(null);
+
+            await apiPost(
+                token,
+                "/api/meta/ad-accounts/sync/",
+                "Failed to sync Meta ad accounts.",
+            );
+
+            await loadMeta();
+        } catch (err) {
+            console.error("AD ACCOUNT SYNC ERROR:", err);
+            setError("Unable to sync Meta ad accounts.");
+        } finally {
+            setLoading("syncAccounts", false);
+        }
+    }, [token, loadMeta, setLoading]);
+
+    const syncCampaigns = useCallback(
+        async (accountId: number) => {
+            try {
+                setLoading("syncCampaigns", true);
+                setError(null);
+
+                await apiGet(
+                    token,
+                    `/api/meta/ad-accounts/${accountId}/campaigns/`,
+                    "Failed to sync campaigns.",
+                );
+
+                await loadCampaigns(accountId);
+            } catch (err) {
+                console.error("CAMPAIGN SYNC ERROR:", err);
+                setError("Unable to sync campaigns.");
+            } finally {
+                setLoading("syncCampaigns", false);
+            }
+        },
+        [token, loadCampaigns, setLoading],
+    );
+
+    const syncAdSets = useCallback(
+        async (campaignId: number) => {
+            try {
+                setLoading("syncAdSets", true);
+                setError(null);
+
+                await apiGet(
+                    token,
+                    `/api/meta/campaigns/${campaignId}/ad-sets/`,
+                    "Failed to sync ad sets.",
+                );
+
+                await loadAdSets(campaignId);
+            } catch (err) {
+                console.error("AD SET SYNC ERROR:", err);
+                setError("Unable to sync ad sets.");
+            } finally {
+                setLoading("syncAdSets", false);
+            }
+        },
+        [token, loadAdSets, setLoading],
+    );
+
+    const syncAds = useCallback(
+        async (adSetId: number) => {
+            try {
+                setLoading("syncAds", true);
+                setError(null);
+
+                await apiGet(
+                    token,
+                    `/api/meta/ad-sets/${adSetId}/ads/`,
+                    "Failed to sync ads.",
+                );
+
+                await loadAds(adSetId);
+            } catch (err) {
+                console.error("AD SYNC ERROR:", err);
+                setError("Unable to sync ads.");
+            } finally {
+                setLoading("syncAds", false);
+            }
+        },
+        [token, loadAds, setLoading],
+    );
+
+    const syncInsights = useCallback(
+        async (adId: number) => {
+            try {
+                setLoading("syncInsights", true);
+                setError(null);
+
+                await apiGet(
+                    token,
+                    `/api/meta/ads/${adId}/insights/`,
+                    "Failed to sync ad insights.",
+                    {
+                        date_start: dateStart,
+                        date_stop: dateEnd,
+                    },
+                );
+
+                await loadInsights(
+                    adId,
+                    dateStart,
+                    dateEnd,
+                );
+            } catch (err) {
+                console.error("INSIGHT SYNC ERROR:", err);
+                setError("Unable to sync ad insights.");
+            } finally {
+                setLoading("syncInsights", false);
+            }
+        },
+        [
+            token,
+            dateStart,
+            dateEnd,
+            loadInsights,
+            setLoading,
+        ],
     );
 
     useEffect(() => {
@@ -527,21 +683,71 @@ export default function MetaPage() {
 
                 <MetaHeader connected={state.connected} />
 
-                <MetaBreadcrumb selectedAccount={selectedAccount} selectedCampaign={selectedCampaign} selectedAdSet={selectedAdSet}/>
+                <MetaBreadcrumb selectedAccount={selectedAccount} selectedCampaign={selectedCampaign} selectedAdSet={selectedAdSet} />
 
-                <AdAccountsSection accounts={accounts} selectedAccount={selectedAccount} onSelectAccount={handleSelectAccount}/>
+                {/* <AdAccountsSection accounts={accounts} selectedAccount={selectedAccount} onSelectAccount={handleSelectAccount}/> */}
+                <AdAccountsSection
+                    accounts={accounts}
+                    selectedAccount={selectedAccount}
+                    onSelectAccount={handleSelectAccount}
+                    onSync={syncAdAccounts}
+                    syncing={loadingState.syncAccounts}
+                />
 
-                <CampaignsSection selectedAccount={selectedAccount}  campaigns={campaigns} selectedCampaign={selectedCampaign} getStatusClass={getStatusClass} loading={loadingState.campaigns} onSelectCampaign={handleSelectCampaign} />
+                {/* <CampaignsSection selectedAccount={selectedAccount} campaigns={campaigns} selectedCampaign={selectedCampaign} getStatusClass={getStatusClass} loading={loadingState.campaigns} onSelectCampaign={handleSelectCampaign} /> */}
+                <CampaignsSection
+                    selectedAccount={selectedAccount}
+                    campaigns={campaigns}
+                    selectedCampaign={selectedCampaign}
+                    getStatusClass={getStatusClass}
+                    loading={loadingState.campaigns}
+                    onSelectCampaign={handleSelectCampaign}
+                    onSync={syncCampaigns}
+                    syncing={loadingState.syncCampaigns}
+                />
 
-               <AdSetsSection selectedCampaign={selectedCampaign} adSets={adSets} loading={loadingState.adSets} getStatusClass={getStatusClass} selectedAdSet={selectedAdSet} onSelectAdSet={handleSelectAdSet}/>
+                {/* <AdSetsSection selectedCampaign={selectedCampaign} adSets={adSets} loading={loadingState.adSets} getStatusClass={getStatusClass} selectedAdSet={selectedAdSet} onSelectAdSet={handleSelectAdSet} /> */}
 
-                <AdsSection selectedAdSet={selectedAdSet} ads={ads} onSelectAd={handleSelectAd} getStatusClass={getStatusClass} loading={loadingState.ads} />
+                <AdSetsSection
+                    selectedCampaign={selectedCampaign}
+                    adSets={adSets}
+                    loading={loadingState.adSets}
+                    getStatusClass={getStatusClass}
+                    selectedAdSet={selectedAdSet}
+                    onSelectAdSet={handleSelectAdSet}
+                    onSync={syncAdSets}
+                    syncing={loadingState.syncAdSets}
+                />
+
+                {/* <AdsSection selectedAdSet={selectedAdSet} ads={ads} onSelectAd={handleSelectAd} getStatusClass={getStatusClass} loading={loadingState.ads} /> */}
+
+                <AdsSection
+                    selectedAdSet={selectedAdSet}
+                    ads={ads}
+                    onSelectAd={handleSelectAd}
+                    getStatusClass={getStatusClass}
+                    loading={loadingState.ads}
+                    onSync={syncAds}
+                    syncing={loadingState.syncAds}
+                />
 
                 {selectedAd && (
                     <div className="mt-10 pb-16">
 
-                       <InsightsHeader selectedAd={selectedAd} dateStart={dateStart} dateEnd={dateEnd} loading={loadingState.insights} 
-                       onDateStartChange={setDateStart} onDateEndChange={setDateEnd} onApplyDateRange={applyDateRange}
+                        {/* <InsightsHeader selectedAd={selectedAd} dateStart={dateStart} dateEnd={dateEnd} loading={loadingState.insights}
+                            onDateStartChange={setDateStart} onDateEndChange={setDateEnd} onApplyDateRange={applyDateRange}
+                        /> */}
+
+                        <InsightsHeader
+                            selectedAd={selectedAd}
+                            dateStart={dateStart}
+                            dateEnd={dateEnd}
+                            loading={loadingState.insights}
+                            onDateStartChange={setDateStart}
+                            onDateEndChange={setDateEnd}
+                            onApplyDateRange={applyDateRange}
+                            onSync={() => syncInsights(selectedAd.id)}
+                            syncing={loadingState.syncInsights}
                         />
 
                         {/* ========================================================= */}
