@@ -1,38 +1,41 @@
 'use client';
 
 import React from 'react';
-import { useState ,useRef} from 'react';
+import { useState, useRef } from 'react';
 
 import DashboardTopBar from './dashboardTopBar';
 
 import HomeModule from '@/components/modules/home/homeModule';
 import ChatLayout from '@/components/layout/chatLayout';
+import MetaPage from '../modules/meta/metaPage';
 
 import { useNotifcationSocket } from '@/lib/hooks/notificationSocket';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { appendChat } from '@/store/slices/chatSlice';
-import { updateChats,updateMessages } from '@/store/slices/chatSlice';
+import { updateChats, updateMessages } from '@/store/slices/chatSlice';
 import { updateChatsReadStatus } from '@/store/slices/chatSlice';
 
 
 
 type DashboardSection =
     | 'home'
-    | 'messages';
+    | 'messages'
+    |  'meta';
+
 
 export default function DashboardLayout() {
 
     const [activeSection, setActiveSection] =
         useState<DashboardSection>('home');
     const { id } = useSelector((state: any) => state.user);
-    const { id:selectedchatid } = useSelector((state: any) => state.selectedChat);
+    const { id: selectedchatid } = useSelector((state: any) => state.selectedChat);
     const dispatch = useDispatch();
 
     const selectedChatIdRef = useRef<number | null>(null);
 
 
-    const getChatid = ()=>{
+    const getChatid = () => {
         return selectedchatid;
     }
 
@@ -56,10 +59,10 @@ export default function DashboardLayout() {
                 chatidd = parseInt(chatidd)
 
             dispatch(updateChats(res.data.content))
-            
+
             //console.log(selectedChatIdRef.current)
             if (selectedChatIdRef.current === chatidd) {
-                
+
                 dispatch(updateMessages([res.data.content]))
                 sendMessage({
                     event_type: "read_receipt",
@@ -114,6 +117,10 @@ export default function DashboardLayout() {
 
                 {activeSection === 'messages' && (
                     <ChatLayout sendMessage={sendMessage} />
+                )}
+
+                {activeSection === 'meta' && (
+                    <MetaPage />
                 )}
 
             </section>

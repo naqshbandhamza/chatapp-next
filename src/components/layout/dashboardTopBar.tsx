@@ -2,7 +2,8 @@
 
 type DashboardSection =
     | 'home'
-    | 'messages';
+    | 'messages'
+    |  'meta';
 
 interface DashboardTopBarProps {
     activeSection: DashboardSection;
@@ -108,6 +109,35 @@ export default function DashboardTopBar({
                     `}
                 >
                     Messages
+                </button>
+
+                <button
+                    onClick={() =>
+                        setActiveSection('meta')
+                    }
+                    className={`
+                        h-full
+                        border-b-2
+                        px-4
+                        text-sm
+                        font-semibold
+                        transition
+
+                        ${
+                            activeSection === 'meta'
+                                ? `
+                                    border-[#6C5CE7]
+                                    text-[#6C5CE7]
+                                  `
+                                : `
+                                    border-transparent
+                                    text-gray-500
+                                    hover:text-gray-900
+                                  `
+                        }
+                    `}
+                >
+                    Meta
                 </button>
 
             </nav>
