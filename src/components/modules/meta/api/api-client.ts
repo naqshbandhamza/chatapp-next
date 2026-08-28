@@ -49,3 +49,47 @@ export async function apiPost<T>(
 
     return response.json();
 }
+
+
+export async function getAdCreative(adId: number,token: string) {
+    const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/meta/ads/${adId}/creative/`,
+        {
+            method: "GET",
+            headers: {
+                Authorization: `Token ${token}`,
+                "Content-Type": "application/json",
+            },
+            credentials: "include",
+        },
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            "Failed to fetch ad creative",
+        );
+    }
+
+    return response.json();
+}
+
+
+export async function getAdVideo(adId: number,token: string) {
+    const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/meta/ads/${adId}/video/`,
+        {
+            method: "GET",
+            headers: {
+                Authorization: `Token ${token}`,
+                "Content-Type": "application/json",
+            },
+            credentials: "include",
+        },
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to load ad video");
+    }
+
+    return response.json();
+}

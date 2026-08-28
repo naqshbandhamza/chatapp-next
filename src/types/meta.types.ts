@@ -76,3 +76,28 @@ export type MetaInsightsResponse = {
     success: boolean;
     insights: Insight[];
 };
+
+
+
+export type AdCreative = {
+    id: number;
+    meta_id: string | null;
+    name: string | null;
+    title: string | null;
+    body: string | null;
+    call_to_action_type: string | null;
+    image_url: string | null;
+    thumbnail_url: string | null;
+    video_id: string | null;
+    created_at: string;
+    synced_at: string;
+};
+
+
+export type AdVideo = {
+    id: string;
+    source: string | null;
+    picture: string | null;
+    title: string | null;
+    description: string | null;
+};
