@@ -21,7 +21,7 @@ import { updateChatsReadStatus } from '@/store/slices/chatSlice';
 type DashboardSection =
     | 'home'
     | 'messages'
-    |  'meta';
+    | 'meta';
 
 
 export default function DashboardLayout() {
@@ -30,6 +30,10 @@ export default function DashboardLayout() {
         useState<DashboardSection>('home');
     const { id } = useSelector((state: any) => state.user);
     const { id: selectedchatid } = useSelector((state: any) => state.selectedChat);
+    const { chats } = useSelector(
+        (state: any) => state.chats
+    );
+
     const dispatch = useDispatch();
 
     const selectedChatIdRef = useRef<number | null>(null);
@@ -39,7 +43,7 @@ export default function DashboardLayout() {
         return selectedchatid;
     }
 
-    const { sendMessage } = useNotifcationSocket(id, (res) => {
+    const { sendMessage, subscribeChat, unsubscribeChat } = useNotifcationSocket(id, (res) => {
 
         if (res.data.event_type === "new_chat") {
 
@@ -60,7 +64,7 @@ export default function DashboardLayout() {
 
             dispatch(updateChats(res.data.content))
 
-            //console.log(selectedChatIdRef.current)
+            
             if (selectedChatIdRef.current === chatidd) {
 
                 dispatch(updateMessages([res.data.content]))
@@ -82,6 +86,24 @@ export default function DashboardLayout() {
         selectedChatIdRef.current = selectedchatid;
     }, [selectedchatid]);
 
+
+    React.useEffect(() => {
+        
+        for (const chat of chats) {
+
+            const chatId = Number(chat.chat_id);
+
+            if (
+                Number.isNaN(chatId) ||
+                chatId <= 0
+            ) {
+                continue;
+            }
+            console.log("sending to subscribe chat" ,chats)
+            subscribeChat(chatId);
+        }
+
+    }, [chats,subscribeChat]);
 
     return (
         <main
@@ -116,7 +138,8 @@ export default function DashboardLayout() {
                 )}
 
                 {activeSection === 'messages' && (
-                    <ChatLayout sendMessage={sendMessage} />
+                    <ChatLayout sendMessage={sendMessage}
+                    />
                 )}
 
                 {activeSection === 'meta' && (

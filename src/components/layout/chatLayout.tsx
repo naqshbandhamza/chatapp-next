@@ -6,10 +6,12 @@ import Chats from '@/components/modules/chat/currentChats';
 import { useSelector } from 'react-redux';
 
 interface DashboardLayoutProps {
-    sendMessage: (id:any) => void;
-  }
+    sendMessage: (data: any) => void;
+}
 
-export default function DashboardLayout({ sendMessage }: DashboardLayoutProps) {
+export default function DashboardLayout({
+    sendMessage,
+}: DashboardLayoutProps) {
     const { id: selectedChatId } = useSelector(
         (state: any) => state.selectedChat
     );
@@ -60,7 +62,7 @@ export default function DashboardLayout({ sendMessage }: DashboardLayoutProps) {
                     <ProfileHeader variation="destination" />
 
                     <div className="min-h-0 flex-1">
-                        <MainChat sendMessage={sendMessage}/>
+                        <MainChat sendMessage={sendMessage} />
                     </div>
                 </section>
 

@@ -5,9 +5,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import React, { useRef } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import { updateChatsReadStatus,updateMessages,clearMessages } from '@/store/slices/chatSlice';
-//import { useNotifcationSocket } from '@/lib/hooks/notificationSocket';
-//import { appendChat } from '@/store/slices/chatSlice';
-//import { updateChats } from '@/store/slices/chatSlice';
 import { v4 as uuidv4 } from "uuid";
 
 
@@ -16,10 +13,8 @@ const inter = Montserrat({
     subsets: ['latin'],
 })
 
-function ChatInput({ id, chatid, username, sendMessage, 
-    //MessageSentSuccessfully 
+function ChatInput({ id, chatid, username, sendMessage,  
 }: { id: number, chatid: number, username: string, sendMessage: any
-    //, MessageSentSuccessfully: any 
 }) {
 
     const notify = (msg: string) => toast(msg);
@@ -174,7 +169,9 @@ interface DashboardLayoutProps {
     sendMessage: (id: any) => void;
 }
 
-export default function MainChat({ sendMessage }: DashboardLayoutProps) {
+export default function MainChat({
+    sendMessage,
+}: DashboardLayoutProps) {
 
     console.log("Main Chat Rendered")
 
@@ -182,51 +179,12 @@ export default function MainChat({ sendMessage }: DashboardLayoutProps) {
     // id     -> is users's id
 
     const { id: chatid } = useSelector((state: any) => state.selectedChat);
-    const chatIdRef = React.useRef<string | null>(null);
+    //const chatIdRef = React.useRef<string | null>(null);
+    const chatIdRef = React.useRef<number | null>(null);
     const { username, id } = useSelector((state: any) => state.user);
     const { messages } = useSelector((state: any) => state.chats);
 
     const dispatch = useDispatch();
-    //const [messages, setMessages] = React.useState<Message[]>([]);
-    //const [participants,setParticipants] = React.useState<string[]>([]);
-
-
-    // const { sendMessage } = useNotifcationSocket(id, (res) => {
-
-    //     if (res.data.event_type === "new_chat") {
-
-    //         const { messages, ...rest } = res.data.content.chat;
-    //         let net_result = {
-    //             ...rest, latest_message: messages[0]
-    //         }
-    //         dispatch(appendChat(net_result))
-
-    //         dispatch(updateChats(messages[0]))
-
-    //     } else if (res.data.event_type === "new_message") {
-    //         console.log("new msg", res)
-
-    //         let chatidd = res.data.content.chat;
-    //         if (typeof chatidd !== 'number')
-    //             chatidd = parseInt(chatidd)
-
-    //         dispatch(updateChats(res.data.content))
-    //         if (chatIdRef.current === chatidd) {
-    //             setMessages((prev) => [...prev, res.data.content])
-    //             sendMessage({
-    //                 event_type: "read_receipt",
-    //                 content: {
-    //                     chatId: chatidd, senderId: id, lastMessageId: res.data.content.message_id
-    //                 }
-    //             }
-    //             );
-    //             dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatidd }))
-    //         }
-
-    //     }
-
-    // });
-
 
     const getChatDetails = async (chatId: number) => {
         try {
@@ -241,12 +199,10 @@ export default function MainChat({ sendMessage }: DashboardLayoutProps) {
             });
 
             const response = await res.json();
-            console.log("res res ttt", response)
-            //setParticipants([response.data.created_by,response.data.participants[0].user])
-            //setMessages(response.data.messages)
+            console.log("chat details", response)
+
             dispatch(clearMessages())
             dispatch(updateMessages(response.data.messages));
-            console.log("from getchatdetails :", chatId)
             dispatch(updateChatsReadStatus({ user_id: id, chat_id: chatId }))
 
 
