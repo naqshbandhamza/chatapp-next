@@ -79,7 +79,7 @@ export default function NewChat() {
     return (
         <>
             <button
-                className='absolute top-[26px] right-[120px] text-gray-400 w-10 h-10 rounded-[50%]'
+                className='absolute top-[20px] right-[20px] text-gray-400 w-10 h-10 rounded-[50%]'
                 style={{ zIndex: "9998" }}
                 onClick={() => {
                     setOpen(prev => !prev)
