@@ -70,8 +70,11 @@ export const useNotifcationSocket = (
         ? 'wss'
         : 'ws';
 
+    // const socket = new WebSocket(
+    //   `${protocol}://${process.env.NEXT_PUBLIC_WS_URL}/ws/api/chat/notifications/?token=${token}`
+    // );
     const socket = new WebSocket(
-      `${protocol}://${process.env.NEXT_PUBLIC_WS_URL}/ws/api/chat/notifications/?token=${token}`
+      `${protocol}://${process.env.NEXT_PUBLIC_WS_URL}/ws/api/chat/notifications/`
     );
 
     socketRef.current = socket;
