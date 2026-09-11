@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: true,
       sameSite: "lax",
+      domain: ".chimesocial.space",
       path: "/",
     });
 
