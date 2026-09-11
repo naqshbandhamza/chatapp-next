@@ -44,6 +44,12 @@ export async function POST(req: NextRequest) {
     );
 
     response.cookies.set("session", enc, cookieOptions);
+    response.cookies.set("ws_auth_token", loginRes.data.token , {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+    });
 
     return response;
   } catch (error: any) {
