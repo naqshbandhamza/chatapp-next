@@ -262,8 +262,6 @@ export default function MetaConnectButton({
     const configId =
       process.env.NEXT_PUBLIC_META_CONFIG_ID;
 
-    console.log("Meta App ID:", appId);
-    console.log("Meta Config ID:", configId);
 
     if (!appId) {
       console.error(
@@ -343,10 +341,7 @@ export default function MetaConnectButton({
       const data =
         await djangoResponse.json();
 
-      console.log(
-        "DJANGO RESPONSE:",
-        data,
-      );
+      
 
       if (
         djangoResponse.ok &&
@@ -409,7 +404,7 @@ export default function MetaConnectButton({
           "========== META RESPONSE ==========",
         );
 
-        console.log(response);
+        
 
         const code =
           response?.authResponse?.code;
