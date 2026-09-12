@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
       sameSite: "lax",
       domain: ".chimesocial.space",
       path: "/",
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return response;
