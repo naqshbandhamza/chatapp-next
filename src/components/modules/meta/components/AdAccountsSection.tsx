@@ -1,252 +1,225 @@
-// import type { AdAccount } from "@/types/meta.types";
-// import { EmptyState } from "./EmptyState";
-// import { InfoBox } from "./InfoBox";
-
-// type AdAccountsSectionProps = {
-//     accounts: AdAccount[];
-//     selectedAccount: AdAccount | null;
-//     onSelectAccount: (account: AdAccount) => void;
-// };
-
-// export default function AdAccountsSection({
-//     accounts,
-//     selectedAccount,
-//     onSelectAccount,
-// }: AdAccountsSectionProps) {
-//     return (
-//         <section>
-//             <div className="mb-4 flex items-end justify-between">
-//                 <div>
-//                     <p className="text-xs font-semibold uppercase tracking-wider text-[#8a8d91]">
-//                         Level 1
-//                     </p>
-
-//                     <h2 className="mt-1 text-xl font-bold text-[#1c1e21]">
-//                         Ad Accounts
-//                     </h2>
-//                 </div>
-
-//                 <span className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-[#65676b] ring-1 ring-[#dadde1]">
-//                     {accounts.length}{" "}
-//                     {accounts.length === 1 ? "account" : "accounts"}
-//                 </span>
-//             </div>
-
-//             {accounts.length === 0 ? (
-//                 <EmptyState text="No ad accounts found." />
-//             ) : (
-//                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-//                     {accounts.map((account) => {
-//                         const selected =
-//                             selectedAccount?.id === account.id;
-
-//                         return (
-//                             <button
-//                                 key={account.id}
-//                                 type="button"
-//                                 onClick={() => onSelectAccount(account)}
-//                                 className={`group text-left rounded-2xl border bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
-//                                     selected
-//                                         ? "border-[#1877F2] ring-2 ring-[#1877F2]/10"
-//                                         : "border-[#dadde1]"
-//                                 }`}
-//                             >
-//                                 <div className="flex items-start justify-between gap-4">
-//                                     <div className="flex min-w-0 items-center gap-3">
-//                                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#eaf2ff] text-[#1877F2]">
-//                                             $
-//                                         </div>
-
-//                                         <div className="min-w-0">
-//                                             <h3 className="truncate font-semibold text-[#1c1e21]">
-//                                                 {account.name ||
-//                                                     "Unnamed account"}
-//                                             </h3>
-
-//                                             <p className="mt-1 truncate text-xs text-[#8a8d91]">
-//                                                 {account.meta_id}
-//                                             </p>
-//                                         </div>
-//                                     </div>
-
-//                                     {selected ? (
-//                                         <span className="rounded-full bg-[#eaf2ff] px-2.5 py-1 text-xs font-semibold text-[#1877F2]">
-//                                             Selected
-//                                         </span>
-//                                     ) : (
-//                                         <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-//                                             Active
-//                                         </span>
-//                                     )}
-//                                 </div>
-
-//                                 <div className="mt-5 grid grid-cols-2 gap-3">
-//                                     <InfoBox
-//                                         label="Currency"
-//                                         value={account.currency || "—"}
-//                                     />
-
-//                                     <InfoBox
-//                                         label="Timezone"
-//                                         value={
-//                                             account.timezone_name || "—"
-//                                         }
-//                                     />
-//                                 </div>
-
-//                                 <div className="mt-4 flex items-center justify-between border-t border-[#f0f1f2] pt-4">
-//                                     <span className="text-xs text-[#8a8d91]">
-//                                         View campaigns
-//                                     </span>
-
-//                                     <span className="text-[#1877F2] transition-transform group-hover:translate-x-1">
-//                                         →
-//                                     </span>
-//                                 </div>
-//                             </button>
-//                         );
-//                     })}
-//                 </div>
-//             )}
-//         </section>
-//     );
-// }
-
 import type { AdAccount } from "@/types/meta.types";
 import { EmptyState } from "./EmptyState";
 import { InfoBox } from "./InfoBox";
+import React from "react";
 
 type AdAccountsSectionProps = {
-    accounts: AdAccount[];
-    selectedAccount: AdAccount | null;
-    onSelectAccount: (account: AdAccount) => void;
-    onSync: () => void;
-    syncing: boolean;
+  accounts: AdAccount[];
+  selectedAccount: AdAccount | null;
+  onSelectAccount: (account: AdAccount) => void;
+  onSync: () => void;
+  syncing: boolean;
 };
 
 export default function AdAccountsSection({
-    accounts,
-    selectedAccount,
-    onSelectAccount,
-    onSync,
-    syncing,
+  accounts,
+  selectedAccount,
+  onSelectAccount,
+  onSync,
+  syncing,
 }: AdAccountsSectionProps) {
-    return (
-        <section>
-            <div className="mb-4 flex items-end justify-between gap-4">
-                <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[#8a8d91]">
-                        Level 1
-                    </p>
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
 
-                    <h2 className="mt-1 text-xl font-bold text-[#1c1e21]">
-                        Ad Accounts
-                    </h2>
-                </div>
+  return (
+    <section>
+      {/* Header */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-[#1c1e21]">
+            Ad Accounts
+          </h2>
+        </div>
 
-                <div className="flex items-center gap-3">
-                    <span className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-[#65676b] ring-1 ring-[#dadde1]">
-                        {accounts.length}{" "}
-                        {accounts.length === 1 ? "account" : "accounts"}
-                    </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-[#f5f6f7] px-3 py-1.5 text-xs font-medium tabular-nums text-[#65676b] ring-1 ring-[#e4e6eb]">
+            {accounts.length}{" "}
+            {accounts.length === 1 ? "account" : "accounts"}
+          </span>
 
-                    <button
-                        type="button"
-                        onClick={onSync}
-                        disabled={syncing}
-                        className="inline-flex items-center gap-2 rounded-lg bg-[#1877F2] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {syncing ? (
-                            <>
-                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                Syncing...
-                            </>
-                        ) : (
-                            <>
-                                <span className="text-sm">↻</span>
-                                Sync Accounts
-                            </>
-                        )}
-                    </button>
-                </div>
+          <button
+            type="button"
+            onClick={onSync}
+            disabled={syncing}
+            className="inline-flex min-h-[36px] items-center gap-2 rounded-lg bg-[#1565c0] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#0f56ab] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1565c0] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {syncing ? (
+              <>
+                <span
+                  aria-hidden="true"
+                  className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                />
+                Syncing...
+              </>
+            ) : (
+              <>
+                <span aria-hidden="true" className="text-sm">
+                  ↻
+                </span>
+                Sync Accounts
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsCollapsed((prev) => !prev)}
+            aria-expanded={!isCollapsed}
+            aria-controls="ad-accounts-panel"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#65676b] transition hover:bg-[#f0f2f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1565c0] focus-visible:ring-offset-2"
+          >
+            <span
+              aria-hidden="true"
+              className={`inline-block text-sm transition-transform duration-200 ${
+                isCollapsed ? "-rotate-90" : "rotate-0"
+              }`}
+            >
+              ▾
+            </span>
+
+            <span className="sr-only">
+              {isCollapsed
+                ? "Expand ad accounts"
+                : "Collapse ad accounts"}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div id="ad-accounts-panel">
+        {isCollapsed ? null : accounts.length === 0 ? (
+          <EmptyState text="No ad accounts found." />
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-[#e4e6eb] bg-white">
+            {/* Desktop table header */}
+            <div className="hidden border-b border-[#e4e6eb] bg-[#f8f9fa] px-4 py-2.5 sm:grid sm:grid-cols-[minmax(220px,2fr)_110px_120px_minmax(160px,1.4fr)_110px] sm:items-center sm:gap-4">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8a8d91]">
+                Account
+              </span>
+
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8a8d91]">
+                Status
+              </span>
+
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8a8d91]">
+                Currency
+              </span>
+
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8a8d91]">
+                Timezone
+              </span>
+
+              <span className="text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8d91]">
+                Action
+              </span>
             </div>
 
-            {accounts.length === 0 ? (
-                <EmptyState text="No ad accounts found." />
-            ) : (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {accounts.map((account) => {
-                        const selected =
-                            selectedAccount?.id === account.id;
+            {/* Account rows */}
+            <div className="divide-y divide-[#eef0f2]">
+              {accounts.map((account) => {
+                const selected =
+                  selectedAccount?.id === account.id;
 
-                        return (
-                            <button
-                                key={account.id}
-                                type="button"
-                                onClick={() => onSelectAccount(account)}
-                                className={`group rounded-2xl border bg-white p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
-                                    selected
-                                        ? "border-[#1877F2] ring-2 ring-[#1877F2]/10"
-                                        : "border-[#dadde1]"
-                                }`}
-                            >
-                                <div className="flex items-start justify-between gap-4">
-                                    <div className="flex min-w-0 items-center gap-3">
-                                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#eaf2ff] text-[#1877F2]">
-                                            $
-                                        </div>
+                return (
+                  <button
+                    key={account.id}
+                    type="button"
+                    onClick={() => onSelectAccount(account)}
+                    aria-pressed={selected}
+                    className={`group grid w-full gap-3 p-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1565c0] motion-reduce:transition-none sm:grid-cols-[minmax(220px,2fr)_110px_120px_minmax(160px,1.4fr)_110px] sm:items-center sm:gap-4 sm:px-4 sm:py-3 ${
+                      selected
+                        ? "bg-[#f5f9ff]"
+                        : "bg-white hover:bg-[#f8f9fa]"
+                    }`}
+                  >
+                    {/* Account */}
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div
+                        aria-hidden="true"
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold transition-colors ${
+                          selected
+                            ? "bg-[#eaf2ff] text-[#1877F2]"
+                            : "bg-[#f0f2f5] text-[#65676b]"
+                        }`}
+                      >
+                        $
+                      </div>
 
-                                        <div className="min-w-0">
-                                            <h3 className="truncate font-semibold text-[#1c1e21]">
-                                                {account.name ||
-                                                    "Unnamed account"}
-                                            </h3>
+                      <div className="min-w-0">
+                        <h3 className="truncate text-sm font-semibold text-[#1c1e21]">
+                          {account.name || "Unnamed account"}
+                        </h3>
+                      </div>
+                    </div>
 
-                                            <p className="mt-1 truncate text-xs text-[#8a8d91]">
-                                                {account.meta_id}
-                                            </p>
-                                        </div>
-                                    </div>
+                    {/* Status */}
+                    <div className="flex items-center">
+                      {selected ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#eaf2ff] px-2 py-1 text-[10px] font-semibold text-[#1560c9]">
+                          <span aria-hidden="true">✓</span>
+                          Selected
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">
+                          <span
+                            aria-hidden="true"
+                            className="h-1.5 w-1.5 rounded-full bg-emerald-500"
+                          />
+                          Active
+                        </span>
+                      )}
+                    </div>
 
-                                    {selected ? (
-                                        <span className="rounded-full bg-[#eaf2ff] px-2.5 py-1 text-xs font-semibold text-[#1877F2]">
-                                            Selected
-                                        </span>
-                                    ) : (
-                                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                                            Active
-                                        </span>
-                                    )}
-                                </div>
+                    {/* Mobile information labels */}
+                    <div className="grid grid-cols-2 gap-2 sm:contents">
+                      {/* Currency */}
+                      <div className="min-w-0">
+                        <div className="sm:hidden">
+                          <InfoBox
+                            label="Currency"
+                            value={account.currency || "—"}
+                          />
+                        </div>
 
-                                <div className="mt-5 grid grid-cols-2 gap-3">
-                                    <InfoBox
-                                        label="Currency"
-                                        value={account.currency || "—"}
-                                    />
+                        <div className="hidden sm:block">
+                          <InfoBox
+                            label="Currency"
+                            value={account.currency || "—"}
+                          />
+                        </div>
+                      </div>
 
-                                    <InfoBox
-                                        label="Timezone"
-                                        value={
-                                            account.timezone_name || "—"
-                                        }
-                                    />
-                                </div>
+                      {/* Timezone */}
+                      <div className="min-w-0">
+                        <InfoBox
+                          label="Timezone"
+                          value={account.timezone_name || "—"}
+                        />
+                      </div>
+                    </div>
 
-                                <div className="mt-4 flex items-center justify-between border-t border-[#f0f1f2] pt-4">
-                                    <span className="text-xs text-[#8a8d91]">
-                                        View campaigns
-                                    </span>
+                    {/* Action */}
+                    <div className="col-span-2 flex items-center justify-between border-t border-[#eef0f2] pt-2.5 sm:col-span-1 sm:justify-end sm:border-0 sm:pt-0">
+                      <span className="text-xs font-medium text-[#65676b] sm:hidden">
+                        View campaigns
+                      </span>
 
-                                    <span className="text-[#1877F2] transition-transform group-hover:translate-x-1">
-                                        →
-                                    </span>
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
-            )}
-        </section>
-    );
+                      <span
+                        aria-hidden="true"
+                        className="text-sm font-medium text-[#1877F2] transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transition-none"
+                      >
+                        <span className="hidden sm:inline">
+                          View campaigns&nbsp;
+                        </span>
+                        →
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
 }
