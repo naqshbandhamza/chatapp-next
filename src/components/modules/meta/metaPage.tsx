@@ -586,7 +586,7 @@ export default function MetaPage() {
       setBulkInsightResults(null);
 
       try {
-        const response = await apiPost(
+        const response:any = await apiPost(
           token,
           "/api/meta/ads/insights/bulk/",
           "failed",
