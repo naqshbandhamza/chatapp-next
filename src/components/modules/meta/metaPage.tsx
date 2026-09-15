@@ -23,28 +23,18 @@ import {
   Insight,
   MetaInsightsResponse,
 } from "@/types/meta.types";
-import {
-  //DrilldownState,
-  //DrilldownAction,
-  initialDrilldownState,
-} from "./state/drilldown.reducer";
+import { initialDrilldownState } from "./state/drilldown.reducer";
 import { drilldownReducer } from "./state/drilldown.reducer";
 import { apiGet, apiPost } from "./api/api-client";
-//import { InfoBox } from "./components/InfoBox";
-//import { SectionHeader } from "./components/SectionHeader";
-//import { LoadingBox } from "./components/LoadingBox";
-//import { EmptyState } from "./components/EmptyState";
 import { InsightCard } from "./components/InsightCard";
-//import { DateInput } from "./components/DateInput";
+
 import { formatNumber } from "./components/formatNumber";
 import { formatDecimal } from "./components/formatDecimal";
 import { formatInsightDate } from "./components/formatInsightDate";
 import { InsightChartCard } from "./components/InsightChartCard";
 import { PerformanceLineChart } from "./components/PerformanceLineChart";
 import { SpendEfficiencyChart } from "./components/SpendEfficiencyChart";
-//import { MiniMetric } from "./components/MiniMetric";
-//import { formatShortInsightDate } from "./components/formatShortInsightDate";
-//import { formatCompactNumber } from "./components/formatCompactNumber";
+
 import MetaHeader from "./components/MetaHeader";
 import MetaBreadcrumb from "./components/MetaBreadcrumb";
 import AdAccountsSection from "./components/AdAccountsSection";
@@ -112,9 +102,10 @@ type BulkInsightSyncResult = {
   error?: string;
 };
 
-type CombinedInsight = Insight & {
-  ad_ids?: number[];
-};
+type CombinedInsight = Insight;
+//  & {
+//   ad_ids?: number[];
+// };
 
 type CombinedInsightTotals = {
   impressions: number;
@@ -377,7 +368,7 @@ export default function MetaPage() {
           })
         );
 
-        console.log("the responses: ",responses)
+        console.log("the responses: ", responses);
 
         /*
          * Combine rows by date.
@@ -398,7 +389,6 @@ export default function MetaPage() {
                 clicks: Number(insight.clicks) || 0,
                 spend: Number(insight.spend) || 0,
                 conversions: Number(insight.conversions) || 0,
-                ad_ids: [ad.id],
               });
 
               return;
@@ -408,8 +398,8 @@ export default function MetaPage() {
             existing.reach += Number(insight.reach) || 0;
             existing.clicks += Number(insight.clicks) || 0;
             existing.spend += Number(insight.spend) || 0;
-            if(existing.conversions)
-            existing.conversions += Number(insight.conversions) || 0;
+            if (existing.conversions)
+              existing.conversions += Number(insight.conversions) || 0;
 
             existing.ad_ids = Array.from(
               new Set([...(existing.ad_ids ?? []), ad.id])
@@ -586,7 +576,7 @@ export default function MetaPage() {
       setBulkInsightResults(null);
 
       try {
-        const response:any = await apiPost(
+        const response: any = await apiPost(
           token,
           "/api/meta/ads/insights/bulk/",
           "failed",
@@ -996,7 +986,7 @@ export default function MetaPage() {
                     <span className="h-2 w-2 shrink-0 rounded-full bg-[#2563eb]" />
 
                     <span
-                      title={ad.name}
+                      title={ad.name ? ad.name : undefined}
                       className="max-w-[220px] truncate text-xs font-medium text-[#334155]"
                     >
                       {ad.name}
@@ -1593,7 +1583,7 @@ export default function MetaPage() {
                       <span className="h-1.5 w-1.5 rounded-full bg-[#2563eb]" />
 
                       <span
-                        title={ad.name}
+                        title={ad.name ? ad.name : undefined}
                         className="max-w-[180px] truncate text-xs font-medium text-[#334155]"
                       >
                         {ad.name}
@@ -1682,24 +1672,27 @@ export default function MetaPage() {
                 description="Impressions, reach and clicks across all selected ads"
               >
                 <PerformanceLineChart
-                  data={combinedChartData}
-                  lines={[
-                    {
-                      key: "impressions",
-                      label: "Impressions",
-                      className: "stroke-[#1877F2]",
-                    },
-                    {
-                      key: "reach",
-                      label: "Reach",
-                      className: "stroke-[#8B5CF6]",
-                    },
-                    {
-                      key: "clicks",
-                      label: "Clicks",
-                      className: "stroke-[#10B981]",
-                    },
-                  ]}
+                    data={combinedChartData}
+                    lines={[
+                        {
+                            key: "impressions",
+                            label: "Impressions",
+                            className:
+                                "stroke-[#1877F2]",
+                        },
+                        {
+                            key: "reach",
+                            label: "Reach",
+                            className:
+                                "stroke-[#8B5CF6]",
+                        },
+                        {
+                            key: "clicks",
+                            label: "Clicks",
+                            className:
+                                "stroke-[#10B981]",
+                        },
+                    ]}
                 />
               </InsightChartCard>
 
