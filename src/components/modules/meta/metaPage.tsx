@@ -408,6 +408,7 @@ export default function MetaPage() {
             existing.reach += Number(insight.reach) || 0;
             existing.clicks += Number(insight.clicks) || 0;
             existing.spend += Number(insight.spend) || 0;
+            if(existing.conversions)
             existing.conversions += Number(insight.conversions) || 0;
 
             existing.ad_ids = Array.from(
