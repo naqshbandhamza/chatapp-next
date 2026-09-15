@@ -29,6 +29,11 @@ type AdsSectionProps = {
     onSelectAd: (ad: Ad) => void;
     onSync: (adSetId: number) => void;
     syncing: boolean;
+
+    /*
+     * Returns the currently selected ads.
+     */
+    onSelectionChange?: (ads: Ad[]) => void;
 };
 
 export default function AdsSection({
@@ -39,6 +44,7 @@ export default function AdsSection({
     onSelectAd,
     onSync,
     syncing,
+    onSelectionChange,
 }: AdsSectionProps) {
     const { token } = useSelector(
         (state: any) => state.user,
@@ -61,6 +67,12 @@ export default function AdsSection({
     const [isCollapsed, setIsCollapsed] =
         useState(false);
 
+    /*
+     * Selected ads for bulk operations.
+     */
+    const [selectedAdIds, setSelectedAdIds] =
+        useState<Set<number>>(new Set());
+
     const videoRequested = useRef<
         Record<number, boolean>
     >({});
@@ -68,6 +80,47 @@ export default function AdsSection({
     const videoRefs = useRef<
         Record<number, HTMLDivElement | null>
     >({});
+
+    /*
+     * Remove selected ads that no longer exist
+     * in the currently displayed ad list.
+     */
+    useEffect(() => {
+        setSelectedAdIds((previous) => {
+            const availableIds = new Set(
+                ads.map((ad) => ad.id),
+            );
+
+            const next = new Set<number>();
+
+            previous.forEach((id) => {
+                if (availableIds.has(id)) {
+                    next.add(id);
+                }
+            });
+
+            return next;
+        });
+    }, [ads]);
+
+    /*
+     * Notify parent whenever the selection changes.
+     */
+    useEffect(() => {
+        if (!onSelectionChange) {
+            return;
+        }
+
+        const selectedAds = ads.filter((ad) =>
+            selectedAdIds.has(ad.id),
+        );
+
+        onSelectionChange(selectedAds);
+    }, [
+        ads,
+        selectedAdIds,
+        onSelectionChange,
+    ]);
 
     /*
      * Load creatives.
@@ -249,12 +302,56 @@ export default function AdsSection({
         };
     }, [ads, creatives, token]);
 
+    /*
+     * Toggle one ad.
+     */
+    const toggleAdSelection = (
+        adId: number,
+    ) => {
+        setSelectedAdIds((previous) => {
+            const next = new Set(previous);
+
+            if (next.has(adId)) {
+                next.delete(adId);
+            } else {
+                next.add(adId);
+            }
+
+            return next;
+        });
+    };
+
+    /*
+     * Select / deselect all currently visible ads.
+     */
+    const toggleSelectAll = () => {
+        setSelectedAdIds((previous) => {
+            if (
+                previous.size === ads.length
+            ) {
+                return new Set();
+            }
+
+            return new Set(
+                ads.map((ad) => ad.id),
+            );
+        });
+    };
+
+    const allSelected =
+        ads.length > 0 &&
+        selectedAdIds.size === ads.length;
+
+    const someSelected =
+        selectedAdIds.size > 0 &&
+        selectedAdIds.size < ads.length;
+
     if (!selectedAdSet) {
         return null;
     }
 
     return (
-        <section className="mt-10 pb-10">
+        <section className="mt-10">
             {/* ========================================================= */}
             {/* HEADER */}
             {/* ========================================================= */}
@@ -264,6 +361,16 @@ export default function AdsSection({
                     <h2 className="text-xl font-bold tracking-tight text-[#1c1e21]">
                         Ads
                     </h2>
+
+                    {selectedAdIds.size > 0 && (
+                        <p className="mt-1 text-xs text-[#65676b]">
+                            {selectedAdIds.size}{" "}
+                            {selectedAdIds.size === 1
+                                ? "ad"
+                                : "ads"}{" "}
+                            selected
+                        </p>
+                    )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -273,6 +380,13 @@ export default function AdsSection({
                             ? "ad"
                             : "ads"}
                     </span>
+
+                    {selectedAdIds.size > 0 && (
+                        <span className="rounded-full bg-[#e8f1ff] px-3 py-1.5 text-xs font-semibold tabular-nums text-[#1565c0] ring-1 ring-[#c9dcff]">
+                            {selectedAdIds.size}{" "}
+                            selected
+                        </span>
+                    )}
 
                     <button
                         type="button"
@@ -349,10 +463,43 @@ export default function AdsSection({
                     ) : (
                         <div className="overflow-hidden rounded-xl border border-[#e4e6eb] bg-white">
                             {/* ================================================= */}
-                            {/* DESKTOP TABLE HEADER */}
+                            {/* TABLE HEADER */}
                             {/* ================================================= */}
 
-                            <div className="hidden border-b border-[#e4e6eb] bg-[#f8f9fa] px-4 py-2.5 sm:grid sm:grid-cols-[minmax(260px,2fr)_minmax(180px,1.5fr)_110px_130px] sm:items-center sm:gap-4">
+                            <div className="hidden border-b border-[#e4e6eb] bg-[#f8f9fa] px-4 py-2.5 sm:grid sm:grid-cols-[40px_minmax(260px,2fr)_minmax(180px,1.5fr)_110px_130px] sm:items-center sm:gap-4">
+                                {/* Select all */}
+
+                                <div className="flex items-center justify-center">
+                                    <button
+                                        type="button"
+                                        onClick={
+                                            toggleSelectAll
+                                        }
+                                        aria-label={
+                                            allSelected
+                                                ? "Deselect all ads"
+                                                : "Select all ads"
+                                        }
+                                        className="flex h-5 w-5 items-center justify-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1565c0] focus-visible:ring-offset-1"
+                                    >
+                                        <span
+                                            className={`flex h-4 w-4 items-center justify-center rounded border text-[10px] font-bold transition-colors ${
+                                                allSelected
+                                                    ? "border-[#1565c0] bg-[#1565c0] text-white"
+                                                    : someSelected
+                                                      ? "border-[#1565c0] bg-[#e8f1ff] text-[#1565c0]"
+                                                      : "border-[#c8ccd0] bg-white text-transparent"
+                                            }`}
+                                        >
+                                            {allSelected
+                                                ? "✓"
+                                                : someSelected
+                                                  ? "−"
+                                                  : ""}
+                                        </span>
+                                    </button>
+                                </div>
+
                                 <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8a8d91]">
                                     Ad
                                 </span>
@@ -368,6 +515,50 @@ export default function AdsSection({
                                 <span className="text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8d91]">
                                     Action
                                 </span>
+                            </div>
+
+                            {/* ================================================= */}
+                            {/* MOBILE SELECT ALL */}
+                            {/* ================================================= */}
+
+                            <div className="flex items-center justify-between border-b border-[#e4e6eb] bg-[#f8f9fa] px-3 py-2 sm:hidden">
+                                <button
+                                    type="button"
+                                    onClick={
+                                        toggleSelectAll
+                                    }
+                                    className="inline-flex items-center gap-2 text-xs font-semibold text-[#65676b]"
+                                >
+                                    <span
+                                        className={`flex h-4 w-4 items-center justify-center rounded border text-[10px] font-bold ${
+                                            allSelected
+                                                ? "border-[#1565c0] bg-[#1565c0] text-white"
+                                                : someSelected
+                                                  ? "border-[#1565c0] bg-[#e8f1ff] text-[#1565c0]"
+                                                  : "border-[#c8ccd0] bg-white text-transparent"
+                                        }`}
+                                    >
+                                        {allSelected
+                                            ? "✓"
+                                            : someSelected
+                                              ? "−"
+                                              : ""}
+                                    </span>
+
+                                    {allSelected
+                                        ? "Deselect all"
+                                        : "Select all"}
+                                </button>
+
+                                {selectedAdIds.size >
+                                    0 && (
+                                    <span className="text-xs font-medium text-[#1565c0]">
+                                        {
+                                            selectedAdIds.size
+                                        }{" "}
+                                        selected
+                                    </span>
+                                )}
                             </div>
 
                             {/* ================================================= */}
@@ -414,28 +605,68 @@ export default function AdsSection({
                                               null;
 
                                     const selected =
-                                        false;
+                                        selectedAdIds.has(
+                                            ad.id,
+                                        );
 
                                     return (
-                                        <button
+                                        <div
                                             key={ad.id}
-                                            type="button"
-                                            onClick={() =>
-                                                onSelectAd(
-                                                    ad,
-                                                )
-                                            }
-                                            className={`group grid w-full gap-3 p-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1565c0] motion-reduce:transition-none sm:grid-cols-[minmax(260px,2fr)_minmax(180px,1.5fr)_110px_130px] sm:items-center sm:gap-4 sm:px-4 sm:py-3 ${
+                                            className={`group grid w-full gap-3 p-3 transition-colors duration-150 sm:grid-cols-[40px_minmax(260px,2fr)_minmax(180px,1.5fr)_110px_130px] sm:items-center sm:gap-4 sm:px-4 sm:py-3 ${
                                                 selected
                                                     ? "bg-[#f5f9ff]"
                                                     : "bg-white hover:bg-[#f8f9fa]"
                                             }`}
                                         >
                                             {/* ================================================= */}
+                                            {/* CHECKBOX */}
+                                            {/* ================================================= */}
+
+                                            <div className="flex items-center justify-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        toggleAdSelection(
+                                                            ad.id,
+                                                        )
+                                                    }
+                                                    aria-label={
+                                                        selected
+                                                            ? `Deselect ${ad.name || "ad"}`
+                                                            : `Select ${ad.name || "ad"}`
+                                                    }
+                                                    aria-pressed={
+                                                        selected
+                                                    }
+                                                    className="flex h-7 w-7 items-center justify-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1565c0] focus-visible:ring-offset-1"
+                                                >
+                                                    <span
+                                                        className={`flex h-4 w-4 items-center justify-center rounded border text-[10px] font-bold transition-colors ${
+                                                            selected
+                                                                ? "border-[#1565c0] bg-[#1565c0] text-white"
+                                                                : "border-[#c8ccd0] bg-white text-transparent group-hover:border-[#a8adb3]"
+                                                        }`}
+                                                    >
+                                                        {selected
+                                                            ? "✓"
+                                                            : ""}
+                                                    </span>
+                                                </button>
+                                            </div>
+
+                                            {/* ================================================= */}
                                             {/* AD */}
                                             {/* ================================================= */}
 
-                                            <div className="flex min-w-0 items-center gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    onSelectAd(
+                                                        ad,
+                                                    )
+                                                }
+                                                className="flex min-w-0 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1565c0]"
+                                            >
                                                 <div
                                                     ref={(
                                                         element,
@@ -500,7 +731,7 @@ export default function AdsSection({
                                                             "Unnamed ad"}
                                                     </h3>
                                                 </div>
-                                            </div>
+                                            </button>
 
                                             {/* ================================================= */}
                                             {/* CREATIVE */}
@@ -581,17 +812,22 @@ export default function AdsSection({
                                                     View insights
                                                 </span>
 
-                                                <span
-                                                    aria-hidden="true"
-                                                    className="text-sm font-medium text-[#1877F2] transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transition-none"
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        onSelectAd(
+                                                            ad,
+                                                        )
+                                                    }
+                                                    className="text-sm font-medium text-[#1877F2] transition-transform duration-150 hover:translate-x-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1565c0] focus-visible:ring-offset-2 motion-reduce:transition-none"
                                                 >
                                                     <span className="hidden sm:inline">
                                                         View insights&nbsp;
                                                     </span>
                                                     →
-                                                </span>
+                                                </button>
                                             </div>
-                                        </button>
+                                        </div>
                                     );
                                 })}
                             </div>
@@ -602,4 +838,3 @@ export default function AdsSection({
         </section>
     );
 }
-

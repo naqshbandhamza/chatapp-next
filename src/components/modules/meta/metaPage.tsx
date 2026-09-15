@@ -9,9 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useSelector } from "react-redux";
-
 import MetaConnect from "./metaConnect";
-
 import {
   AdAccount,
   MetaStatusResponse,
@@ -25,14 +23,35 @@ import {
   Insight,
   MetaInsightsResponse,
 } from "@/types/meta.types";
-
 import {
-  DrilldownState,
-  DrilldownAction,
+  //DrilldownState,
+  //DrilldownAction,
   initialDrilldownState,
 } from "./state/drilldown.reducer";
 import { drilldownReducer } from "./state/drilldown.reducer";
-
+import { apiGet, apiPost } from "./api/api-client";
+//import { InfoBox } from "./components/InfoBox";
+//import { SectionHeader } from "./components/SectionHeader";
+//import { LoadingBox } from "./components/LoadingBox";
+//import { EmptyState } from "./components/EmptyState";
+import { InsightCard } from "./components/InsightCard";
+//import { DateInput } from "./components/DateInput";
+import { formatNumber } from "./components/formatNumber";
+import { formatDecimal } from "./components/formatDecimal";
+import { formatInsightDate } from "./components/formatInsightDate";
+import { InsightChartCard } from "./components/InsightChartCard";
+import { PerformanceLineChart } from "./components/PerformanceLineChart";
+import { SpendEfficiencyChart } from "./components/SpendEfficiencyChart";
+//import { MiniMetric } from "./components/MiniMetric";
+//import { formatShortInsightDate } from "./components/formatShortInsightDate";
+//import { formatCompactNumber } from "./components/formatCompactNumber";
+import MetaHeader from "./components/MetaHeader";
+import MetaBreadcrumb from "./components/MetaBreadcrumb";
+import AdAccountsSection from "./components/AdAccountsSection";
+import CampaignsSection from "./components/CampaignsSection";
+import AdSetsSection from "./components/AdSetsSection";
+import AdsSection from "./components/AdsSection";
+import InsightsHeader from "./components/InsightsHeader";
 
 type LoadingState = {
   meta: boolean;
@@ -47,6 +66,7 @@ type LoadingState = {
   syncAdSets: boolean;
   syncAds: boolean;
   syncInsights: boolean;
+  syncSelectedInsights: boolean;
 };
 
 const initialLoadingState: LoadingState = {
@@ -62,61 +82,60 @@ const initialLoadingState: LoadingState = {
   syncAdSets: false,
   syncAds: false,
   syncInsights: false,
+  syncSelectedInsights: false,
 };
 
+type BulkInsightSyncResponse = {
+  success: boolean;
+  date_start: string;
+  date_stop: string;
+  total_ads: number;
+  successful_ads: number;
+  failed_ads: number;
+  results: BulkInsightSyncResult[];
+};
 
-import { apiGet, apiPost } from "./api/api-client";
-
-import { InfoBox } from "./components/InfoBox";
-import { SectionHeader } from "./components/SectionHeader";
-import { LoadingBox } from "./components/LoadingBox";
-import { EmptyState } from "./components/EmptyState";
-import { InsightCard } from "./components/InsightCard";
-import { DateInput } from "./components/DateInput";
-import { formatNumber } from "./components/formatNumber";
-import { formatDecimal } from "./components/formatDecimal";
-import { formatInsightDate } from "./components/formatInsightDate";
-import { InsightChartCard } from "./components/InsightChartCard";
-import { PerformanceLineChart } from "./components/PerformanceLineChart";
-import { SpendEfficiencyChart } from "./components/SpendEfficiencyChart";
-import { MiniMetric } from "./components/MiniMetric";
-import { formatShortInsightDate } from "./components/formatShortInsightDate";
-import { formatCompactNumber } from "./components/formatCompactNumber";
-
-import MetaHeader from "./components/MetaHeader";
-import MetaBreadcrumb from "./components/MetaBreadcrumb";
-import AdAccountsSection from "./components/AdAccountsSection";
-import CampaignsSection from "./components/CampaignsSection";
-import AdSetsSection from "./components/AdSetsSection";
-import AdsSection from "./components/AdsSection";
-
-import InsightsHeader from "./components/InsightsHeader";
+type BulkInsightSyncResult = {
+  ad_id: number;
+  meta_id: string;
+  name: string;
+  success: boolean;
+  result?: {
+    dates?: string[];
+    paging?: {
+      cursors?: {
+        before?: string;
+        after?: string;
+      };
+    };
+  };
+  error?: string;
+};
 
 export default function MetaPage() {
   const [state, dispatch] = useReducer(drilldownReducer, initialDrilldownState);
-
   const [loadingState, setLoadingState] =
     useState<LoadingState>(initialLoadingState);
-
   const setLoading = useCallback((key: keyof LoadingState, value: boolean) => {
     setLoadingState((prev) => ({ ...prev, [key]: value }));
   }, []);
-
   const [dateStart, setDateStart] = useState(() => {
     const date = new Date();
     date.setDate(date.getDate() - 30);
     return date.toISOString().split("T")[0];
   });
-
   const [dateEnd, setDateEnd] = useState(() => {
     return new Date().toISOString().split("T")[0];
   });
-
   const [appliedDateStart, setAppliedDateStart] = useState(dateStart);
   const [appliedDateEnd, setAppliedDateEnd] = useState(dateEnd);
-
   const [error, setError] = useState<string | null>(null);
-
+  const [selectedAds, setSelectedAds] = useState<Ad[]>([]);
+  // const [bulkInsightResults, setBulkInsightResults] = useState<
+  //   BulkInsightSyncResult[]
+  // >([]);
+  const [bulkInsightResults, setBulkInsightResults] =
+    useState<BulkInsightSyncResponse | null>(null);
   const { token } = useSelector((state: any) => state.user);
 
   /*
@@ -415,6 +434,86 @@ export default function MetaPage() {
     [token, dateStart, dateEnd, loadInsights, setLoading]
   );
 
+  // const syncMultipleInsights = useCallback(
+  //   async (adsToSync: Ad[]) => {
+  //     if (!adsToSync.length) return;
+
+  //     setLoading("syncSelectedInsights", true);
+  //     setError(null);
+  //     setBulkInsightResults([]);
+
+  //     try {
+  //       const response = await apiPost(
+  //         token,
+  //         "/api/meta/ads/insights/bulk/",
+  //         "failed",
+  //         {
+  //           ad_ids: adsToSync.map((ad) => ad.id),
+  //           date_start: appliedDateStart,
+  //           date_stop: appliedDateEnd,
+  //         }
+  //       );
+
+  //       const results: BulkInsightSyncResult[] =
+  //         response?.data?.results ?? response?.results ?? [];
+
+  //       setBulkInsightResults(results);
+  //     } catch (err: any) {
+  //       console.error("Failed to sync selected ad insights:", err);
+
+  //       setError(
+  //         err?.response?.data?.detail ||
+  //           err?.message ||
+  //           "Failed to sync selected ad insights."
+  //       );
+  //     } finally {
+  //       setLoading("syncSelectedInsights", false);
+  //     }
+  //   },
+  //   [appliedDateStart, appliedDateEnd, setLoading]
+  // );
+
+  const syncMultipleInsights = useCallback(
+    async (adsToSync: Ad[]) => {
+      if (!adsToSync.length) return;
+
+      setLoading("syncSelectedInsights", true);
+      setError(null);
+      setBulkInsightResults(null);
+
+      try {
+        const response = await apiPost(
+          token,
+          "/api/meta/ads/insights/bulk/",
+          "failed",
+          {
+            ad_ids: adsToSync.map((ad) => ad.id),
+            date_start: appliedDateStart,
+            date_stop: appliedDateEnd,
+          }
+        );
+
+        const data = response?.data ?? response;
+
+        console.log("Bulk insight sync response:", data);
+
+        setBulkInsightResults(data);
+      } catch (err: any) {
+        console.error("Failed to sync selected ad insights:", err);
+
+        setError(
+          err?.response?.data?.error ||
+            err?.response?.data?.detail ||
+            err?.message ||
+            "Failed to sync selected ad insights."
+        );
+      } finally {
+        setLoading("syncSelectedInsights", false);
+      }
+    },
+    [appliedDateStart, appliedDateEnd, setLoading]
+  );
+
   useEffect(() => {
     if (!token) return;
 
@@ -433,6 +532,9 @@ export default function MetaPage() {
 
   const handleSelectAccount = useCallback(
     (account: AdAccount) => {
+      setSelectedAds([]);
+      setBulkInsightResults(null);
+
       dispatch({ type: "SELECT_ACCOUNT", account });
       loadCampaigns(account.id);
     },
@@ -441,6 +543,9 @@ export default function MetaPage() {
 
   const handleSelectCampaign = useCallback(
     (campaign: Campaign) => {
+      setSelectedAds([]);
+      setBulkInsightResults(null);
+
       dispatch({ type: "SELECT_CAMPAIGN", campaign });
       loadAdSets(campaign.id);
     },
@@ -449,6 +554,9 @@ export default function MetaPage() {
 
   const handleSelectAdSet = useCallback(
     (adSet: AdSet) => {
+      setSelectedAds([]);
+      setBulkInsightResults(null);
+
       dispatch({ type: "SELECT_AD_SET", adSet });
       loadAds(adSet.id);
     },
@@ -641,8 +749,8 @@ export default function MetaPage() {
   } = state;
 
   return (
-    <div className="h-full w-full overflow-y-auto bg-[#f5f6f7]">
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="relative h-full w-full bg-[#f5f6f7] overflow-auto">
+      <div className="mx-auto h-full w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <MetaHeader connected={state.connected} />
 
         <MetaBreadcrumb
@@ -687,10 +795,231 @@ export default function MetaPage() {
 
         {/* <AdsSection selectedAdSet={selectedAdSet} ads={ads} onSelectAd={handleSelectAd} getStatusClass={getStatusClass} loading={loadingState.ads} /> */}
 
+        {/* Selected ads */}
+        {selectedAds.length > 0 && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-[#dbe7f5] bg-white shadow-sm">
+            {/* Selection header */}
+            <div className="flex items-center justify-between border-b border-[#e8eef5] bg-[#f8fbff] px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-7 min-w-7 items-center justify-center rounded-full bg-[#2563eb] px-2 text-xs font-semibold text-white">
+                  {selectedAds.length}
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-[#0f172a]">
+                    {selectedAds.length === 1
+                      ? "1 ad selected"
+                      : `${selectedAds.length} ads selected`}
+                  </h3>
+
+                  <p className="text-xs text-[#64748b]">
+                    Select ads to sync their insights together.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedAds([]);
+                  setBulkInsightResults(null);
+                }}
+                className="rounded-md px-2 py-1 text-xs font-medium text-[#64748b] transition hover:bg-[#f1f5f9] hover:text-[#0f172a]"
+              >
+                Clear all
+              </button>
+            </div>
+
+            {/* Selected ad chips */}
+            <div className="px-4 py-3">
+              <div className="flex flex-wrap gap-2">
+                {selectedAds.map((ad) => (
+                  <div
+                    key={ad.id}
+                    className="flex max-w-full items-center gap-2 rounded-lg border border-[#dbe7f5] bg-[#f8fbff] px-3 py-2"
+                  >
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-[#2563eb]" />
+
+                    <span
+                      title={ad.name}
+                      className="max-w-[220px] truncate text-xs font-medium text-[#334155]"
+                    >
+                      {ad.name}
+                    </span>
+
+                    <button
+                      type="button"
+                      aria-label={`Remove ${ad.name}`}
+                      onClick={() => {
+                        setSelectedAds((current) =>
+                          current.filter((item) => item.id !== ad.id)
+                        );
+
+                        setBulkInsightResults((current) => {
+                          if (!current) return current;
+
+                          return {
+                            ...current,
+                            results: current.results.filter(
+                              (result) => result.ad_id !== ad.id
+                            ),
+                          };
+                        });
+                      }}
+                      className="ml-1 text-base leading-none text-[#94a3b8] transition hover:text-[#ef4444]"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Sync action */}
+            <div className="flex flex-col gap-3 border-t border-[#e8eef5] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-xs text-[#64748b]">
+                <span className="font-medium text-[#334155]">Date range:</span>{" "}
+                {appliedDateStart} → {appliedDateEnd}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => syncMultipleInsights(selectedAds)}
+                disabled={loadingState.syncSelectedInsights}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#2563eb] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loadingState.syncSelectedInsights ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Syncing {selectedAds.length}{" "}
+                    {selectedAds.length === 1 ? "ad" : "ads"}...
+                  </>
+                ) : (
+                  <>
+                    <span>↻</span>
+                    Sync Selected Insights
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {selectedAds.length > 0 && bulkInsightResults!==undefined && bulkInsightResults!==null && (
+          <div className="mb-5 overflow-hidden rounded-xl border border-[#dbe7f5] bg-white shadow-sm">
+            {/* Results header */}
+            <div className="border-b border-[#e8eef5] px-4 py-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#0f172a]">
+                    Insight Sync Results
+                  </h3>
+
+                  <p className="mt-1 text-xs text-[#64748b]">
+                    {bulkInsightResults.date_start} →{" "}
+                    {bulkInsightResults.date_stop}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-[#f1f5f9] px-3 py-1 text-xs font-medium text-[#475569]">
+                    {bulkInsightResults.total_ads}{" "}
+                    {bulkInsightResults.total_ads === 1 ? "ad" : "ads"}
+                  </span>
+
+                  <span className="rounded-full bg-[#ecfdf3] px-3 py-1 text-xs font-medium text-[#15803d]">
+                    {bulkInsightResults.successful_ads} succeeded
+                  </span>
+
+                  {bulkInsightResults.failed_ads > 0 && (
+                    <span className="rounded-full bg-[#fef2f2] px-3 py-1 text-xs font-medium text-[#dc2626]">
+                      {bulkInsightResults.failed_ads} failed
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Individual results */}
+            <div className="divide-y divide-[#eef2f7]">
+              {bulkInsightResults.results.map((result) => {
+                const syncedDates = result.result?.dates?.length ?? 0;
+
+                return (
+                  <div
+                    key={result.ad_id}
+                    className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    {/* Ad information */}
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                          result.success
+                            ? "bg-[#ecfdf3] text-[#16a34a]"
+                            : "bg-[#fef2f2] text-[#dc2626]"
+                        }`}
+                      >
+                        {result.success ? "✓" : "!"}
+                      </div>
+
+                      <div className="min-w-0">
+                        <div
+                          title={result.name}
+                          className="truncate text-sm font-medium text-[#334155]"
+                        >
+                          {result.name}
+                        </div>
+
+                        <div className="mt-0.5 text-xs text-[#94a3b8]">
+                          Ad #{result.ad_id}
+                          {" · "}
+                          {result.meta_id}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status */}
+                    <div className="sm:text-right">
+                      {result.success ? (
+                        <>
+                          <div className="text-xs font-semibold text-[#15803d]">
+                            Synced successfully
+                          </div>
+
+                          <div className="mt-1 text-xs text-[#64748b]">
+                            {syncedDates}{" "}
+                            {syncedDates === 1
+                              ? "daily record"
+                              : "daily records"}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-xs font-semibold text-[#dc2626]">
+                            Sync failed
+                          </div>
+
+                          <div
+                            title={result.error}
+                            className="mt-1 max-w-[320px] truncate text-xs text-[#64748b]"
+                          >
+                            {result.error || "Unable to sync this ad."}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <AdsSection
           selectedAdSet={selectedAdSet}
           ads={ads}
           onSelectAd={handleSelectAd}
+          onSelectionChange={setSelectedAds}
           getStatusClass={getStatusClass}
           loading={loadingState.ads}
           onSync={syncAds}
@@ -1042,5 +1371,4 @@ export default function MetaPage() {
       </div>
     </div>
   );
-
 }

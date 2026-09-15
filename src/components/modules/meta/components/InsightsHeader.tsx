@@ -213,7 +213,7 @@ export default function InsightsHeader({
                         </button>
 
                         {/* SYNC */}
-                        <button
+                        {/* <button
                             type="button"
                             onClick={() =>
                                 onSync(
@@ -254,7 +254,7 @@ export default function InsightsHeader({
                                     Sync Insights
                                 </>
                             )}
-                        </button>
+                        </button> */}
                     </div>
                 </div>
             </div>
