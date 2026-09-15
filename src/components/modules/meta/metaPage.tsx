@@ -112,6 +112,21 @@ type BulkInsightSyncResult = {
   error?: string;
 };
 
+type CombinedInsight = Insight & {
+  ad_ids?: number[];
+};
+
+type CombinedInsightTotals = {
+  impressions: number;
+  reach: number;
+  clicks: number;
+  spend: number;
+  conversions: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+};
+
 export default function MetaPage() {
   const [state, dispatch] = useReducer(drilldownReducer, initialDrilldownState);
   const [loadingState, setLoadingState] =
@@ -131,9 +146,12 @@ export default function MetaPage() {
   const [appliedDateEnd, setAppliedDateEnd] = useState(dateEnd);
   const [error, setError] = useState<string | null>(null);
   const [selectedAds, setSelectedAds] = useState<Ad[]>([]);
-  // const [bulkInsightResults, setBulkInsightResults] = useState<
-  //   BulkInsightSyncResult[]
-  // >([]);
+  const [combinedInsights, setCombinedInsights] = useState<CombinedInsight[]>(
+    []
+  );
+  const [combinedInsightAds, setCombinedInsightAds] = useState<Ad[]>([]);
+  const [loadingCombinedInsights, setLoadingCombinedInsights] = useState(false);
+
   const [bulkInsightResults, setBulkInsightResults] =
     useState<BulkInsightSyncResponse | null>(null);
   const { token } = useSelector((state: any) => state.user);
@@ -318,6 +336,130 @@ export default function MetaPage() {
     [token, setLoading]
   );
 
+  const loadCombinedInsights = useCallback(
+    async (adsToCompare: Ad[]) => {
+      if (!adsToCompare.length) return;
+
+      try {
+        setLoadingCombinedInsights(true);
+        setError(null);
+
+        /*
+         * Remove duplicates by ad ID.
+         */
+        const uniqueAds = Array.from(
+          new Map(adsToCompare.map((ad) => [ad.id, ad])).values()
+        );
+
+        /*
+         * Fetch the already-stored insights for every selected ad.
+         *
+         * We intentionally use the existing individual insights endpoint
+         * so the current backend structure does not need to change.
+         */
+        const responses = await Promise.all(
+          uniqueAds.map(async (ad) => {
+            const data = await apiGet<MetaInsightsResponse>(
+              token,
+              "/api/meta/insights/",
+              `Failed to load insights for ${ad.name}.`,
+              {
+                ad: String(ad.id),
+                date_start: appliedDateStart,
+                date_stop: appliedDateEnd,
+              }
+            );
+
+            return {
+              ad,
+              insights: data.insights ?? [],
+            };
+          })
+        );
+
+        console.log("the responses: ",responses)
+
+        /*
+         * Combine rows by date.
+         */
+        const byDate = new Map<string, CombinedInsight>();
+
+        responses.forEach(({ ad, insights }) => {
+          insights.forEach((insight) => {
+            const date = insight.date;
+
+            const existing = byDate.get(date);
+
+            if (!existing) {
+              byDate.set(date, {
+                ...insight,
+                impressions: Number(insight.impressions) || 0,
+                reach: Number(insight.reach) || 0,
+                clicks: Number(insight.clicks) || 0,
+                spend: Number(insight.spend) || 0,
+                conversions: Number(insight.conversions) || 0,
+                ad_ids: [ad.id],
+              });
+
+              return;
+            }
+
+            existing.impressions += Number(insight.impressions) || 0;
+            existing.reach += Number(insight.reach) || 0;
+            existing.clicks += Number(insight.clicks) || 0;
+            existing.spend += Number(insight.spend) || 0;
+            existing.conversions += Number(insight.conversions) || 0;
+
+            existing.ad_ids = Array.from(
+              new Set([...(existing.ad_ids ?? []), ad.id])
+            );
+          });
+        });
+
+        /*
+         * Recalculate derived metrics from the combined totals.
+         *
+         * Do NOT average CTR/CPC/CPM from individual ads.
+         */
+        const combined = Array.from(byDate.values())
+          .map((insight) => {
+            const impressions = Number(insight.impressions) || 0;
+            const clicks = Number(insight.clicks) || 0;
+            const spend = Number(insight.spend) || 0;
+
+            return {
+              ...insight,
+
+              ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+
+              cpc: clicks > 0 ? spend / clicks : 0,
+
+              cpm: impressions > 0 ? (spend / impressions) * 1000 : 0,
+            };
+          })
+          .sort(
+            (a, b) =>
+              new Date(`${a.date_start}T00:00:00`).getTime() -
+              new Date(`${b.date_start}T00:00:00`).getTime()
+          );
+
+        setCombinedInsights(combined);
+        setCombinedInsightAds(uniqueAds);
+      } catch (err) {
+        console.error("COMBINED INSIGHTS LOAD ERROR:", err);
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load combined ad insights."
+        );
+      } finally {
+        setLoadingCombinedInsights(false);
+      }
+    },
+    [token, appliedDateStart, appliedDateEnd]
+  );
+
   const syncAdAccounts = useCallback(async () => {
     try {
       setLoading("syncAccounts", true);
@@ -433,45 +575,6 @@ export default function MetaPage() {
     },
     [token, dateStart, dateEnd, loadInsights, setLoading]
   );
-
-  // const syncMultipleInsights = useCallback(
-  //   async (adsToSync: Ad[]) => {
-  //     if (!adsToSync.length) return;
-
-  //     setLoading("syncSelectedInsights", true);
-  //     setError(null);
-  //     setBulkInsightResults([]);
-
-  //     try {
-  //       const response = await apiPost(
-  //         token,
-  //         "/api/meta/ads/insights/bulk/",
-  //         "failed",
-  //         {
-  //           ad_ids: adsToSync.map((ad) => ad.id),
-  //           date_start: appliedDateStart,
-  //           date_stop: appliedDateEnd,
-  //         }
-  //       );
-
-  //       const results: BulkInsightSyncResult[] =
-  //         response?.data?.results ?? response?.results ?? [];
-
-  //       setBulkInsightResults(results);
-  //     } catch (err: any) {
-  //       console.error("Failed to sync selected ad insights:", err);
-
-  //       setError(
-  //         err?.response?.data?.detail ||
-  //           err?.message ||
-  //           "Failed to sync selected ad insights."
-  //       );
-  //     } finally {
-  //       setLoading("syncSelectedInsights", false);
-  //     }
-  //   },
-  //   [appliedDateStart, appliedDateEnd, setLoading]
-  // );
 
   const syncMultipleInsights = useCallback(
     async (adsToSync: Ad[]) => {
@@ -629,6 +732,42 @@ export default function MetaPage() {
     return { ...totals, ctr, cpc, cpm };
   }, [state.insights]);
 
+  const combinedInsightTotals = useMemo<CombinedInsightTotals>(() => {
+    const totals = combinedInsights.reduce(
+      (acc, insight) => {
+        acc.impressions += Number(insight.impressions) || 0;
+        acc.reach += Number(insight.reach) || 0;
+        acc.clicks += Number(insight.clicks) || 0;
+        acc.spend += Number(insight.spend) || 0;
+        acc.conversions += Number(insight.conversions) || 0;
+
+        return acc;
+      },
+      {
+        impressions: 0,
+        reach: 0,
+        clicks: 0,
+        spend: 0,
+        conversions: 0,
+      }
+    );
+
+    const ctr =
+      totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+
+    const cpc = totals.clicks > 0 ? totals.spend / totals.clicks : 0;
+
+    const cpm =
+      totals.impressions > 0 ? (totals.spend / totals.impressions) * 1000 : 0;
+
+    return {
+      ...totals,
+      ctr,
+      cpc,
+      cpm,
+    };
+  }, [combinedInsights]);
+
   const chartData = useMemo(() => {
     return [...state.insights]
       .map((insight) => ({
@@ -649,6 +788,21 @@ export default function MetaPage() {
           new Date(`${b.date}T00:00:00`).getTime()
       );
   }, [state.insights]);
+
+  const combinedChartData = useMemo(() => {
+    return combinedInsights.map((insight) => ({
+      ...insight,
+      date: insight.date_start,
+      impressions: Number(insight.impressions) || 0,
+      reach: Number(insight.reach) || 0,
+      clicks: Number(insight.clicks) || 0,
+      spend: Number(insight.spend) || 0,
+      ctr: Number(insight.ctr) || 0,
+      cpc: Number(insight.cpc) || 0,
+      cpm: Number(insight.cpm) || 0,
+      conversions: Number(insight.conversions) || 0,
+    }));
+  }, [combinedInsights]);
 
   /*
    * ---------------------------------------------------------
@@ -901,119 +1055,152 @@ export default function MetaPage() {
                   </>
                 )}
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const adsForComparison = selectedAd
+                    ? [
+                        selectedAd,
+                        ...selectedAds.filter((ad) => ad.id !== selectedAd.id),
+                      ]
+                    : selectedAds;
+
+                  loadCombinedInsights(adsForComparison);
+                }}
+                disabled={
+                  loadingCombinedInsights ||
+                  (!selectedAd && selectedAds.length === 0)
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#2563eb] bg-white px-4 py-2 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loadingCombinedInsights ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#bfdbfe] border-t-[#2563eb]" />
+                    Loading insights...
+                  </>
+                ) : (
+                  <>
+                    <span>▥</span>
+                    View Combined Insights
+                  </>
+                )}
+              </button>
             </div>
           </div>
         )}
 
-        {selectedAds.length > 0 && bulkInsightResults!==undefined && bulkInsightResults!==null && (
-          <div className="mb-5 overflow-hidden rounded-xl border border-[#dbe7f5] bg-white shadow-sm">
-            {/* Results header */}
-            <div className="border-b border-[#e8eef5] px-4 py-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-[#0f172a]">
-                    Insight Sync Results
-                  </h3>
+        {selectedAds.length > 0 &&
+          bulkInsightResults !== undefined &&
+          bulkInsightResults !== null && (
+            <div className="mb-5 overflow-hidden rounded-xl border border-[#dbe7f5] bg-white shadow-sm">
+              {/* Results header */}
+              <div className="border-b border-[#e8eef5] px-4 py-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[#0f172a]">
+                      Insight Sync Results
+                    </h3>
 
-                  <p className="mt-1 text-xs text-[#64748b]">
-                    {bulkInsightResults.date_start} →{" "}
-                    {bulkInsightResults.date_stop}
-                  </p>
-                </div>
+                    <p className="mt-1 text-xs text-[#64748b]">
+                      {bulkInsightResults.date_start} →{" "}
+                      {bulkInsightResults.date_stop}
+                    </p>
+                  </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#f1f5f9] px-3 py-1 text-xs font-medium text-[#475569]">
-                    {bulkInsightResults.total_ads}{" "}
-                    {bulkInsightResults.total_ads === 1 ? "ad" : "ads"}
-                  </span>
-
-                  <span className="rounded-full bg-[#ecfdf3] px-3 py-1 text-xs font-medium text-[#15803d]">
-                    {bulkInsightResults.successful_ads} succeeded
-                  </span>
-
-                  {bulkInsightResults.failed_ads > 0 && (
-                    <span className="rounded-full bg-[#fef2f2] px-3 py-1 text-xs font-medium text-[#dc2626]">
-                      {bulkInsightResults.failed_ads} failed
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-[#f1f5f9] px-3 py-1 text-xs font-medium text-[#475569]">
+                      {bulkInsightResults.total_ads}{" "}
+                      {bulkInsightResults.total_ads === 1 ? "ad" : "ads"}
                     </span>
-                  )}
+
+                    <span className="rounded-full bg-[#ecfdf3] px-3 py-1 text-xs font-medium text-[#15803d]">
+                      {bulkInsightResults.successful_ads} succeeded
+                    </span>
+
+                    {bulkInsightResults.failed_ads > 0 && (
+                      <span className="rounded-full bg-[#fef2f2] px-3 py-1 text-xs font-medium text-[#dc2626]">
+                        {bulkInsightResults.failed_ads} failed
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Individual results */}
-            <div className="divide-y divide-[#eef2f7]">
-              {bulkInsightResults.results.map((result) => {
-                const syncedDates = result.result?.dates?.length ?? 0;
+              {/* Individual results */}
+              <div className="divide-y divide-[#eef2f7]">
+                {bulkInsightResults.results.map((result) => {
+                  const syncedDates = result.result?.dates?.length ?? 0;
 
-                return (
-                  <div
-                    key={result.ad_id}
-                    className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    {/* Ad information */}
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                          result.success
-                            ? "bg-[#ecfdf3] text-[#16a34a]"
-                            : "bg-[#fef2f2] text-[#dc2626]"
-                        }`}
-                      >
-                        {result.success ? "✓" : "!"}
-                      </div>
-
-                      <div className="min-w-0">
+                  return (
+                    <div
+                      key={result.ad_id}
+                      className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      {/* Ad information */}
+                      <div className="flex min-w-0 items-center gap-3">
                         <div
-                          title={result.name}
-                          className="truncate text-sm font-medium text-[#334155]"
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                            result.success
+                              ? "bg-[#ecfdf3] text-[#16a34a]"
+                              : "bg-[#fef2f2] text-[#dc2626]"
+                          }`}
                         >
-                          {result.name}
+                          {result.success ? "✓" : "!"}
                         </div>
 
-                        <div className="mt-0.5 text-xs text-[#94a3b8]">
-                          Ad #{result.ad_id}
-                          {" · "}
-                          {result.meta_id}
+                        <div className="min-w-0">
+                          <div
+                            title={result.name}
+                            className="truncate text-sm font-medium text-[#334155]"
+                          >
+                            {result.name}
+                          </div>
+
+                          <div className="mt-0.5 text-xs text-[#94a3b8]">
+                            Ad #{result.ad_id}
+                            {" · "}
+                            {result.meta_id}
+                          </div>
                         </div>
                       </div>
+
+                      {/* Status */}
+                      <div className="sm:text-right">
+                        {result.success ? (
+                          <>
+                            <div className="text-xs font-semibold text-[#15803d]">
+                              Synced successfully
+                            </div>
+
+                            <div className="mt-1 text-xs text-[#64748b]">
+                              {syncedDates}{" "}
+                              {syncedDates === 1
+                                ? "daily record"
+                                : "daily records"}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="text-xs font-semibold text-[#dc2626]">
+                              Sync failed
+                            </div>
+
+                            <div
+                              title={result.error}
+                              className="mt-1 max-w-[320px] truncate text-xs text-[#64748b]"
+                            >
+                              {result.error || "Unable to sync this ad."}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
-
-                    {/* Status */}
-                    <div className="sm:text-right">
-                      {result.success ? (
-                        <>
-                          <div className="text-xs font-semibold text-[#15803d]">
-                            Synced successfully
-                          </div>
-
-                          <div className="mt-1 text-xs text-[#64748b]">
-                            {syncedDates}{" "}
-                            {syncedDates === 1
-                              ? "daily record"
-                              : "daily records"}
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="text-xs font-semibold text-[#dc2626]">
-                            Sync failed
-                          </div>
-
-                          <div
-                            title={result.error}
-                            className="mt-1 max-w-[320px] truncate text-xs text-[#64748b]"
-                          >
-                            {result.error || "Unable to sync this ad."}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         <AdsSection
           selectedAdSet={selectedAdSet}
@@ -1280,7 +1467,7 @@ export default function MetaPage() {
                             className="border-b border-[#f0f1f2] last:border-0 hover:bg-[#fafbfc]"
                           >
                             <td className="whitespace-nowrap px-5 py-4 text-sm font-semibold text-[#1c1e21]">
-                              {formatInsightDate(insight.date_start)}
+                              {formatInsightDate(insight.date)}
                             </td>
 
                             <td className="px-5 py-4 text-sm text-[#1c1e21]">
@@ -1366,6 +1553,318 @@ export default function MetaPage() {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {combinedInsights.length > 0 && (
+          <div className="mt-10 pb-16">
+            {/* ========================================================= */}
+            {/* COMBINED INSIGHTS HEADER */}
+            {/* ========================================================= */}
+
+            <div className="mb-6 rounded-2xl border border-[#dbe7f5] bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#eff6ff] text-[#2563eb]">
+                      ▥
+                    </div>
+
+                    <div>
+                      <h2 className="text-base font-bold text-[#0f172a]">
+                        Combined Insights
+                      </h2>
+
+                      <p className="mt-0.5 text-xs text-[#64748b]">
+                        Combined performance across {combinedInsightAds.length}{" "}
+                        {combinedInsightAds.length === 1 ? "ad" : "ads"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {combinedInsightAds.map((ad) => (
+                    <div
+                      key={ad.id}
+                      className="flex items-center gap-2 rounded-full border border-[#dbe7f5] bg-[#f8fbff] px-3 py-1.5"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#2563eb]" />
+
+                      <span
+                        title={ad.name}
+                        className="max-w-[180px] truncate text-xs font-medium text-[#334155]"
+                      >
+                        {ad.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[#64748b]">
+                <span className="font-medium text-[#334155]">Date range:</span>
+
+                <span className="rounded-full bg-[#eaf2ff] px-3 py-1.5 font-semibold text-[#1877F2]">
+                  {appliedDateStart}
+                  <span className="mx-1.5 text-[#8ab4f8]">→</span>
+                  {appliedDateEnd}
+                </span>
+              </div>
+            </div>
+
+            {/* ========================================================= */}
+            {/* COMBINED KPI SUMMARY */}
+            {/* ========================================================= */}
+
+            <div className="mb-8">
+              <div className="mb-4">
+                <h3 className="text-base font-bold text-[#1c1e21]">
+                  Combined performance overview
+                </h3>
+
+                <p className="mt-1 text-xs text-[#8a8d91]">
+                  Aggregated across all selected ads and the current ad
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <InsightCard
+                  label="Impressions"
+                  value={formatNumber(combinedInsightTotals.impressions)}
+                />
+
+                <InsightCard
+                  label="Reach"
+                  value={formatNumber(combinedInsightTotals.reach)}
+                />
+
+                <InsightCard
+                  label="Clicks"
+                  value={formatNumber(combinedInsightTotals.clicks)}
+                />
+
+                <InsightCard
+                  label="Spend"
+                  value={formatDecimal(combinedInsightTotals.spend)}
+                />
+
+                <InsightCard
+                  label="CTR"
+                  value={`${formatDecimal(combinedInsightTotals.ctr, 2)}%`}
+                />
+
+                <InsightCard
+                  label="CPC"
+                  value={formatDecimal(combinedInsightTotals.cpc, 2)}
+                />
+
+                <InsightCard
+                  label="CPM"
+                  value={formatDecimal(combinedInsightTotals.cpm, 2)}
+                />
+
+                <InsightCard
+                  label="Conversions"
+                  value={formatNumber(combinedInsightTotals.conversions)}
+                />
+              </div>
+            </div>
+
+            {/* ========================================================= */}
+            {/* COMBINED CHARTS */}
+            {/* ========================================================= */}
+
+            <div className="mb-8 grid gap-5 xl:grid-cols-2">
+              <InsightChartCard
+                title="Combined traffic trend"
+                description="Impressions, reach and clicks across all selected ads"
+              >
+                <PerformanceLineChart
+                  data={combinedChartData}
+                  lines={[
+                    {
+                      key: "impressions",
+                      label: "Impressions",
+                      className: "stroke-[#1877F2]",
+                    },
+                    {
+                      key: "reach",
+                      label: "Reach",
+                      className: "stroke-[#8B5CF6]",
+                    },
+                    {
+                      key: "clicks",
+                      label: "Clicks",
+                      className: "stroke-[#10B981]",
+                    },
+                  ]}
+                />
+              </InsightChartCard>
+
+              <InsightChartCard
+                title="Combined spend & efficiency"
+                description="Daily spend and efficiency across the selected ads"
+              >
+                <SpendEfficiencyChart
+                  data={combinedChartData}
+                  insightTotals={combinedInsightTotals}
+                />
+              </InsightChartCard>
+            </div>
+
+            {/* ========================================================= */}
+            {/* COMBINED DAILY PERFORMANCE */}
+            {/* ========================================================= */}
+
+            <div className="overflow-hidden rounded-2xl border border-[#dadde1] bg-white shadow-sm">
+              <div className="border-b border-[#f0f1f2] px-5 py-4">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-[#1c1e21]">
+                      Combined daily performance
+                    </h3>
+
+                    <p className="mt-1 text-xs text-[#8a8d91]">
+                      Daily metrics combined across all selected ads
+                    </p>
+                  </div>
+
+                  <span className="text-xs font-medium text-[#8a8d91]">
+                    {combinedInsights.length} rows
+                  </span>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1000px] text-left">
+                  <thead>
+                    <tr className="border-b border-[#f0f1f2] bg-[#fafbfc]">
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                        Date
+                      </th>
+
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                        Impressions
+                      </th>
+
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                        Reach
+                      </th>
+
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                        Clicks
+                      </th>
+
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                        CTR
+                      </th>
+
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                        CPC
+                      </th>
+
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                        CPM
+                      </th>
+
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                        Spend
+                      </th>
+
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                        Conversions
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {combinedInsights.map((insight, index) => (
+                      <tr
+                        key={`${insight.date_start}-${index}`}
+                        className="border-b border-[#f0f1f2] last:border-0 hover:bg-[#fafbfc]"
+                      >
+                        <td className="whitespace-nowrap px-5 py-4 text-sm font-semibold text-[#1c1e21]">
+                          {formatInsightDate(insight.date)}
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-[#1c1e21]">
+                          {formatNumber(insight.impressions)}
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-[#1c1e21]">
+                          {formatNumber(insight.reach)}
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-[#1c1e21]">
+                          {formatNumber(insight.clicks)}
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-[#1c1e21]">
+                          {formatDecimal(insight.ctr, 2)}%
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-[#1c1e21]">
+                          {formatDecimal(insight.cpc, 2)}
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-[#1c1e21]">
+                          {formatDecimal(insight.cpm, 2)}
+                        </td>
+
+                        <td className="px-5 py-4 text-sm font-semibold text-[#1c1e21]">
+                          {formatDecimal(insight.spend, 2)}
+                        </td>
+
+                        <td className="px-5 py-4 text-sm font-semibold text-[#1c1e21]">
+                          {formatNumber(insight.conversions ?? 0)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+
+                  <tfoot>
+                    <tr className="bg-[#fafbfc]">
+                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
+                        Total
+                      </td>
+
+                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
+                        {formatNumber(combinedInsightTotals.impressions)}
+                      </td>
+
+                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
+                        {formatNumber(combinedInsightTotals.reach)}
+                      </td>
+
+                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
+                        {formatNumber(combinedInsightTotals.clicks)}
+                      </td>
+
+                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
+                        {formatDecimal(combinedInsightTotals.ctr, 2)}%
+                      </td>
+
+                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
+                        {formatDecimal(combinedInsightTotals.cpc, 2)}
+                      </td>
+
+                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
+                        {formatDecimal(combinedInsightTotals.cpm, 2)}
+                      </td>
+
+                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
+                        {formatDecimal(combinedInsightTotals.spend, 2)}
+                      </td>
+
+                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
+                        {formatNumber(combinedInsightTotals.conversions)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
           </div>
         )}
       </div>
