@@ -14,8 +14,13 @@ export default function MetaHeader({
                             f
                         </div>
 
+                        {/* <div className="bg-red-500 p-4 text-sm font-bold text-white">
+                            Tailwind Test
+                        </div> */}
+
                         <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-[#1c1e21]">
+                            <h1 className="font-bold tracking-tight text-[#1c1e21] text-base"
+                            >
                                 Meta Ads
                             </h1>
 

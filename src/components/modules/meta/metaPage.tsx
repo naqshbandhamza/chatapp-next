@@ -133,8 +133,20 @@ export default function MetaPage() {
   const [dateEnd, setDateEnd] = useState(() => {
     return new Date().toISOString().split("T")[0];
   });
+
+  const [dateStart1, setDateStart1] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return date.toISOString().split("T")[0];
+  });
+  const [dateEnd1, setDateEnd1] = useState(() => {
+    return new Date().toISOString().split("T")[0];
+  });
+
   const [appliedDateStart, setAppliedDateStart] = useState(dateStart);
   const [appliedDateEnd, setAppliedDateEnd] = useState(dateEnd);
+  const [appliedDateStart1, setAppliedDateStart1] = useState(dateStart);
+  const [appliedDateEnd1, setAppliedDateEnd1] = useState(dateEnd);
   const [error, setError] = useState<string | null>(null);
   const [selectedAds, setSelectedAds] = useState<Ad[]>([]);
   const [combinedInsights, setCombinedInsights] = useState<CombinedInsight[]>(
@@ -682,6 +694,23 @@ export default function MetaPage() {
     loadInsights(state.selectedAd.id, dateStart, dateEnd);
   }, [state.selectedAd, dateStart, dateEnd, loadInsights]);
 
+  const applyDateRange1 = useCallback(() => {
+    if (!state.selectedAd) return;
+    if (!dateStart1 || !dateEnd1) return;
+
+    if (dateStart1 > dateEnd1) {
+      setError("Start date cannot be after end date.");
+      return;
+    }
+
+    setError(null);
+
+    setAppliedDateStart1(dateStart1);
+    setAppliedDateEnd1(dateEnd1);
+
+    loadInsights(state.selectedAd.id, dateStart1, dateEnd1);
+  }, [state.selectedAd, dateStart1, dateEnd1, loadInsights]);
+
   /*
    * ---------------------------------------------------------
    * DERIVED METRICS
@@ -895,7 +924,7 @@ export default function MetaPage() {
 
   return (
     <div className="relative h-full w-full bg-[#f5f6f7] overflow-auto">
-      <div className="mx-auto h-full w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto h-full w-full max-w-[90%] px-4 py-6 sm:px-6 lg:px-8">
         <MetaHeader connected={state.connected} />
 
         <MetaBreadcrumb
@@ -941,8 +970,8 @@ export default function MetaPage() {
         {/* <AdsSection selectedAdSet={selectedAdSet} ads={ads} onSelectAd={handleSelectAd} getStatusClass={getStatusClass} loading={loadingState.ads} /> */}
 
         {/* Selected ads */}
-        {selectedAds.length > 0 && (
-          <div className="mb-4 overflow-hidden rounded-xl border border-[#dbe7f5] bg-white shadow-sm">
+        {selectedAdSet !== null && (
+          <div className="mb-4 mt-4 overflow-hidden rounded-xl border border-[#dbe7f5] bg-white shadow-sm">
             {/* Selection header */}
             <div className="flex items-center justify-between border-b border-[#e8eef5] bg-[#f8fbff] px-4 py-3">
               <div className="flex items-center gap-3">
@@ -1020,6 +1049,65 @@ export default function MetaPage() {
               </div>
             </div>
 
+            {/* Date selection */}
+            <div className="border-t border-[#e8eef5] bg-[#fafcff] px-4 py-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                {/* Start date */}
+                <div className="flex-1">
+                  <label
+                    htmlFor="bulk-insight-date-start"
+                    className="mb-1.5 block text-xs font-medium text-[#334155]"
+                  >
+                    Start date
+                  </label>
+
+                  <input
+                    id="bulk-insight-date-start"
+                    type="date"
+                    value={appliedDateStart}
+                    onChange={(event) => {
+                      setAppliedDateStart(event.target.value);
+                    }}
+                    className="h-9 w-full rounded-lg border border-[#dbe2ea] bg-white px-3 text-xs text-[#334155] outline-none transition focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10"
+                  />
+                </div>
+
+                {/* Arrow */}
+                <div className="hidden pb-2 text-sm text-[#94a3b8] sm:block">
+                  →
+                </div>
+
+                {/* End date */}
+                <div className="flex-1">
+                  <label
+                    htmlFor="bulk-insight-date-end"
+                    className="mb-1.5 block text-xs font-medium text-[#334155]"
+                  >
+                    End date
+                  </label>
+
+                  <input
+                    id="bulk-insight-date-end"
+                    type="date"
+                    value={appliedDateEnd}
+                    min={appliedDateStart || undefined}
+                    onChange={(event) => {
+                      setAppliedDateEnd(event.target.value);
+                    }}
+                    className="h-9 w-full rounded-lg border border-[#dbe2ea] bg-white px-3 text-xs text-[#334155] outline-none transition focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10"
+                  />
+                </div>
+
+                {/* Current range */}
+                <div className="pb-2 text-xs text-[#64748b] sm:min-w-[180px]">
+                  <span className="font-medium text-[#334155]">
+                    Selected range:
+                  </span>{" "}
+                  {appliedDateStart} → {appliedDateEnd}
+                </div>
+              </div>
+            </div>
+
             {/* Sync action */}
             <div className="flex flex-col gap-3 border-t border-[#e8eef5] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-xs text-[#64748b]">
@@ -1027,56 +1115,64 @@ export default function MetaPage() {
                 {appliedDateStart} → {appliedDateEnd}
               </div>
 
-              <button
-                type="button"
-                onClick={() => syncMultipleInsights(selectedAds)}
-                disabled={loadingState.syncSelectedInsights}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#2563eb] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loadingState.syncSelectedInsights ? (
-                  <>
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Syncing {selectedAds.length}{" "}
-                    {selectedAds.length === 1 ? "ad" : "ads"}...
-                  </>
-                ) : (
-                  <>
-                    <span>↻</span>
-                    Sync Selected Insights
-                  </>
-                )}
-              </button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => syncMultipleInsights(selectedAds)}
+                  disabled={
+                    loadingState.syncSelectedInsights ||
+                    !appliedDateStart ||
+                    !appliedDateEnd
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#2563eb] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loadingState.syncSelectedInsights ? (
+                    <>
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      Syncing {selectedAds.length}{" "}
+                      {selectedAds.length === 1 ? "ad" : "ads"}...
+                    </>
+                  ) : (
+                    <>
+                      <span>↻</span>
+                      Sync Selected Insights
+                    </>
+                  )}
+                </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  const adsForComparison = selectedAd
-                    ? [
-                        selectedAd,
-                        ...selectedAds.filter((ad) => ad.id !== selectedAd.id),
-                      ]
-                    : selectedAds;
+                <button
+                  type="button"
+                  onClick={() => {
+                    const adsForComparison = selectedAd
+                      ? [
+                          selectedAd,
+                          ...selectedAds.filter(
+                            (ad) => ad.id !== selectedAd.id
+                          ),
+                        ]
+                      : selectedAds;
 
-                  loadCombinedInsights(adsForComparison);
-                }}
-                disabled={
-                  loadingCombinedInsights ||
-                  (!selectedAd && selectedAds.length === 0)
-                }
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#2563eb] bg-white px-4 py-2 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loadingCombinedInsights ? (
-                  <>
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#bfdbfe] border-t-[#2563eb]" />
-                    Loading insights...
-                  </>
-                ) : (
-                  <>
-                    <span>▥</span>
-                    View Combined Insights
-                  </>
-                )}
-              </button>
+                    loadCombinedInsights(adsForComparison);
+                  }}
+                  disabled={
+                    loadingCombinedInsights ||
+                    (!selectedAd && selectedAds.length === 0)
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#2563eb] bg-white px-4 py-2 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loadingCombinedInsights ? (
+                    <>
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#bfdbfe] border-t-[#2563eb]" />
+                      Loading insights...
+                    </>
+                  ) : (
+                    <>
+                      <span>▥</span>
+                      View Combined Insights
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1205,136 +1301,100 @@ export default function MetaPage() {
         />
 
         {selectedAd && (
-          <div className="mt-10 pb-16">
-            {/* <InsightsHeader selectedAd={selectedAd} dateStart={dateStart} dateEnd={dateEnd} loading={loadingState.insights}
-                            onDateStartChange={setDateStart} onDateEndChange={setDateEnd} onApplyDateRange={applyDateRange}
-                        /> */}
-
+          <div className="mt-6 rounded-xl border border-[#d6dee8] bg-[#eef3f8] p-3">
             <InsightsHeader
               selectedAd={selectedAd}
-              dateStart={dateStart}
-              dateEnd={dateEnd}
+              dateStart={dateStart1}
+              dateEnd={dateEnd1}
               loading={loadingState.insights}
-              onDateStartChange={setDateStart}
-              onDateEndChange={setDateEnd}
-              onApplyDateRange={applyDateRange}
+              onDateStartChange={setDateStart1}
+              onDateEndChange={setDateEnd1}
+              onApplyDateRange={applyDateRange1}
               onSync={() => syncInsights(selectedAd.id)}
               syncing={loadingState.syncInsights}
             />
 
-            {/* ========================================================= */}
-            {/* ACTIVE RANGE */}
-            {/* ========================================================= */}
-
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#dce3ec] bg-white px-2.5 py-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-[#8a8d91]">
-                  Date range
-                </span>
-
-                <span className="rounded-full bg-[#eaf2ff] px-3 py-1.5 text-xs font-semibold text-[#1877F2]">
-                  {appliedDateStart}
-                  <span className="mx-1.5 text-[#8ab4f8]">→</span>
-                  {appliedDateEnd}
+                <span className="text-[11px] text-[#8a8d91]">Range</span>
+                <span className="rounded-md bg-[#eaf2ff] px-2 py-0.5 text-[11px] font-semibold text-[#1877F2]">
+                  {appliedDateStart1}
+                  <span className="mx-1 text-[#8ab4f8]">→</span>
+                  {appliedDateEnd1}
                 </span>
               </div>
 
               {!loadingState.insights && insights.length > 0 && (
-                <span className="text-xs text-[#8a8d91]">
-                  {insights.length} {insights.length === 1 ? "day" : "days"} of
-                  data
+                <span className="text-[11px] text-[#8a8d91]">
+                  {insights.length} {insights.length === 1 ? "day" : "days"}
                 </span>
               )}
             </div>
 
-            {/* ========================================================= */}
-            {/* LOADING / EMPTY / DATA */}
-            {/* ========================================================= */}
-
             {loadingState.insights ? (
-              <div className="rounded-2xl border border-[#dadde1] bg-white p-12 text-center shadow-sm">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-[#1877F2]" />
-
+              <div className="rounded-lg border border-[#dce3ec] bg-white px-4 py-8 text-center">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-[#1877F2]" />
                   <p className="text-sm font-medium text-[#1c1e21]">
                     Loading insights
                   </p>
-
-                  <p className="text-xs text-[#8a8d91]">
+                  <p className="text-[11px] text-[#8a8d91]">
                     Fetching performance data for the selected range
                   </p>
                 </div>
               </div>
             ) : insights.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#d5d7da] bg-white p-12 text-center shadow-sm">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#f5f6f7] text-lg text-[#8a8d91]">
-                  —
-                </div>
-
-                <h3 className="mt-4 text-sm font-semibold text-[#1c1e21]">
+              <div className="rounded-lg border border-dashed border-[#d5d7da] bg-white px-4 py-8 text-center">
+                <h3 className="text-sm font-semibold text-[#1c1e21]">
                   No insights found
                 </h3>
-
-                <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-[#65676b]">
+                <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-[#65676b]">
                   There is no performance data for this ad during the selected
                   date range.
                 </p>
               </div>
             ) : (
-              <>
-                {/* ================================================= */}
-                {/* KPI SUMMARY */}
-                {/* ================================================= */}
-
-                <div className="mb-8">
-                  <div className="mb-4 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-bold text-[#1c1e21]">
-                        Performance overview
-                      </h3>
-
-                      <p className="mt-1 text-xs text-[#8a8d91]">
-                        Aggregated across the selected date range
-                      </p>
-                    </div>
+              <div className="space-y-2.5">
+                {/* Overview section — tinted blue */}
+                <div className="rounded-lg border border-[#d6e4f5] bg-[#f2f7fd] p-2.5">
+                  <div className="mb-1.5">
+                    <h3 className="text-sm font-semibold text-[#1c1e21]">
+                      Overview
+                    </h3>
+                    <p className="text-[11px] text-[#8a8d91]">
+                      Aggregated across the selected date range
+                    </p>
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid grid-cols-4 gap-1.5 lg:grid-cols-8">
                     <InsightCard
                       label="Impressions"
                       value={formatNumber(insightTotals.impressions)}
                     />
-
                     <InsightCard
                       label="Reach"
                       value={formatNumber(insightTotals.reach)}
                     />
-
                     <InsightCard
                       label="Clicks"
                       value={formatNumber(insightTotals.clicks)}
                     />
-
                     <InsightCard
                       label="Spend"
                       value={formatDecimal(insightTotals.spend)}
                     />
-
                     <InsightCard
                       label="CTR"
                       value={`${formatDecimal(insightTotals.ctr, 2)}%`}
                     />
-
                     <InsightCard
                       label="CPC"
                       value={formatDecimal(insightTotals.cpc, 2)}
                     />
-
                     <InsightCard
                       label="CPM"
                       value={formatDecimal(insightTotals.cpm, 2)}
                     />
-
                     <InsightCard
                       label="Conversions"
                       value={formatNumber(insightTotals.conversions)}
@@ -1342,18 +1402,295 @@ export default function MetaPage() {
                   </div>
                 </div>
 
-                {/* ========================================================= */}
-                {/* PERFORMANCE CHARTS */}
-                {/* ========================================================= */}
+                {/* Charts section — tinted purple, side by side from md up */}
+                <div className="rounded-lg border border-[#e3ddf5] bg-[#f8f6fd] p-2.5">
+                  <div className="grid gap-2.5 md:grid-cols-2">
+                    <InsightChartCard
+                      title="Traffic trend"
+                      description="Impressions, reach and clicks over time"
+                    >
+                      <PerformanceLineChart
+                        data={chartData}
+                        lines={[
+                          {
+                            key: "impressions",
+                            label: "Impressions",
+                            className: "stroke-[#1877F2]",
+                          },
+                          {
+                            key: "reach",
+                            label: "Reach",
+                            className: "stroke-[#8B5CF6]",
+                          },
+                          {
+                            key: "clicks",
+                            label: "Clicks",
+                            className: "stroke-[#10B981]",
+                          },
+                        ]}
+                      />
+                    </InsightChartCard>
 
-                <div className="mb-8 grid gap-5 xl:grid-cols-2">
-                  {/* TRAFFIC TREND */}
+                    <InsightChartCard
+                      title="Spend & efficiency"
+                      description="Daily spend and engagement efficiency"
+                    >
+                      <SpendEfficiencyChart
+                        data={chartData}
+                        insightTotals={insightTotals}
+                      />
+                    </InsightChartCard>
+                  </div>
+                </div>
+
+                {/* Table section — tinted green */}
+                <div className="overflow-hidden rounded-lg border border-[#d9ede1] bg-[#f3faf6]">
+                  <div className="flex items-center justify-between border-b border-[#e3f0e8] px-2.5 py-1.5">
+                    <div>
+                      <h3 className="text-sm font-semibold text-[#1c1e21]">
+                        Daily performance
+                      </h3>
+                      <p className="text-[11px] text-[#8a8d91]">
+                        One row per day in the selected range
+                      </p>
+                    </div>
+                    <span className="text-[11px] text-[#8a8d91]">
+                      {insights.length} rows
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto bg-white">
+                    <table className="w-full min-w-[900px] text-left">
+                      <thead>
+                        <tr className="border-b border-[#eef1f5] bg-[#f7f9fb]">
+                          {[
+                            "Date",
+                            "Impressions",
+                            "Reach",
+                            "Clicks",
+                            "CTR",
+                            "CPC",
+                            "CPM",
+                            "Spend",
+                            "Conversions",
+                          ].map((heading) => (
+                            <th
+                              key={heading}
+                              className="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#8a8d91]"
+                            >
+                              {heading}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {insights.map((insight, index) => (
+                          <tr
+                            key={`${insight.date_start}-${index}`}
+                            className="border-b border-[#eef1f5] last:border-0 hover:bg-[#f7f9fb]"
+                          >
+                            <td className="whitespace-nowrap px-2.5 py-1.5 text-xs font-semibold text-[#1c1e21]">
+                              {formatInsightDate(insight.date)}
+                            </td>
+                            <td className="px-2.5 py-1.5 text-xs tabular-nums text-[#1c1e21]">
+                              {formatNumber(insight.impressions)}
+                            </td>
+                            <td className="px-2.5 py-1.5 text-xs tabular-nums text-[#1c1e21]">
+                              {formatNumber(insight.reach)}
+                            </td>
+                            <td className="px-2.5 py-1.5 text-xs tabular-nums text-[#1c1e21]">
+                              {formatNumber(insight.clicks)}
+                            </td>
+                            <td className="px-2.5 py-1.5 text-xs tabular-nums text-[#1c1e21]">
+                              {formatDecimal(insight.ctr, 2)}%
+                            </td>
+                            <td className="px-2.5 py-1.5 text-xs tabular-nums text-[#1c1e21]">
+                              {formatDecimal(insight.cpc, 2)}
+                            </td>
+                            <td className="px-2.5 py-1.5 text-xs tabular-nums text-[#1c1e21]">
+                              {formatDecimal(insight.cpm, 2)}
+                            </td>
+                            <td className="px-2.5 py-1.5 text-xs font-semibold tabular-nums text-[#1c1e21]">
+                              {formatDecimal(insight.spend, 2)}
+                            </td>
+                            <td className="px-2.5 py-1.5 text-xs font-semibold tabular-nums text-[#1c1e21]">
+                              {formatNumber(insight.conversions ?? 0)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+
+                      <tfoot>
+                        <tr className="bg-[#f7f9fb]">
+                          <td className="px-2.5 py-1.5 text-xs font-bold text-[#1c1e21]">
+                            Total
+                          </td>
+                          <td className="px-2.5 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                            {formatNumber(insightTotals.impressions)}
+                          </td>
+                          <td className="px-2.5 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                            {formatNumber(insightTotals.reach)}
+                          </td>
+                          <td className="px-2.5 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                            {formatNumber(insightTotals.clicks)}
+                          </td>
+                          <td className="px-2.5 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                            {formatDecimal(insightTotals.ctr, 2)}%
+                          </td>
+                          <td className="px-2.5 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                            {formatDecimal(insightTotals.cpc, 2)}
+                          </td>
+                          <td className="px-2.5 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                            {formatDecimal(insightTotals.cpm, 2)}
+                          </td>
+                          <td className="px-2.5 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                            {formatDecimal(insightTotals.spend, 2)}
+                          </td>
+                          <td className="px-2.5 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                            {formatNumber(insightTotals.conversions)}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {combinedInsights.length > 0 && (
+          <div className="mt-8 pb-10 bg-[#eef3f8] rounded-xl border border-[#d6dee8]">
+            {/* ========================================================= */}
+            {/* COMBINED INSIGHTS HEADER */}
+            {/* ========================================================= */}
+
+            <div className="mx-2.5">
+              <div className="mb-4 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#eff6ff] text-[#2563eb]">
+                        ▥
+                      </div>
+
+                      <div>
+                        <h2 className="text-sm font-bold text-[#0f172a]">
+                          Combined Insights
+                        </h2>
+
+                        <p className="mt-0.5 text-[11px] text-[#64748b]">
+                          Combined performance across{" "}
+                          {combinedInsightAds.length}{" "}
+                          {combinedInsightAds.length === 1 ? "ad" : "ads"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {combinedInsightAds.map((ad) => (
+                      <div
+                        key={ad.id}
+                        className="flex items-center gap-1.5 rounded-full border border-[#dbe7f5] bg-[#f8fbff] px-2.5 py-1"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#2563eb]" />
+
+                        <span
+                          title={ad.name ? ad.name : undefined}
+                          className="max-w-[180px] truncate text-[11px] font-medium text-[#334155]"
+                        >
+                          {ad.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#64748b]">
+                  <span className="font-medium text-[#334155]">
+                    Date range:
+                  </span>
+
+                  <span className="rounded-full bg-[#eaf2ff] px-2.5 py-1 font-semibold text-[#1877F2]">
+                    {appliedDateStart}
+                    <span className="mx-1.5 text-[#8ab4f8]">→</span>
+                    {appliedDateEnd}
+                  </span>
+                </div>
+              </div>
+
+              {/* ========================================================= */}
+              {/* COMBINED KPI SUMMARY — tinted blue */}
+              {/* ========================================================= */}
+
+              <div className="mb-4 rounded-xl  p-3.5 bg-[#f2f7fd] border border-[#d6e4f5]">
+                <div className="mb-2.5">
+                  <h3 className="text-sm font-bold text-[#1c1e21]">
+                    Combined performance overview
+                  </h3>
+
+                  <p className="mt-0.5 text-[11px] text-[#8a8d91]">
+                    Aggregated across all selected ads and the current ad
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2 lg:grid-cols-8">
+                  <InsightCard
+                    label="Impressions"
+                    value={formatNumber(combinedInsightTotals.impressions)}
+                  />
+
+                  <InsightCard
+                    label="Reach"
+                    value={formatNumber(combinedInsightTotals.reach)}
+                  />
+
+                  <InsightCard
+                    label="Clicks"
+                    value={formatNumber(combinedInsightTotals.clicks)}
+                  />
+
+                  <InsightCard
+                    label="Spend"
+                    value={formatDecimal(combinedInsightTotals.spend)}
+                  />
+
+                  <InsightCard
+                    label="CTR"
+                    value={`${formatDecimal(combinedInsightTotals.ctr, 2)}%`}
+                  />
+
+                  <InsightCard
+                    label="CPC"
+                    value={formatDecimal(combinedInsightTotals.cpc, 2)}
+                  />
+
+                  <InsightCard
+                    label="CPM"
+                    value={formatDecimal(combinedInsightTotals.cpm, 2)}
+                  />
+
+                  <InsightCard
+                    label="Conversions"
+                    value={formatNumber(combinedInsightTotals.conversions)}
+                  />
+                </div>
+              </div>
+
+              {/* ========================================================= */}
+              {/* COMBINED CHARTS — tinted purple */}
+              {/* ========================================================= */}
+
+              <div className="mb-4 rounded-xl border border-[#e3ddf5] bg-[#f8f6fd] p-3.5">
+                <div className="grid gap-3 md:grid-cols-2">
                   <InsightChartCard
-                    title="Traffic trend"
-                    description="How impressions, reach and clicks changed over time"
+                    title="Combined traffic trend"
+                    description="Impressions, reach and clicks across all selected ads"
                   >
                     <PerformanceLineChart
-                      data={chartData}
+                      data={combinedChartData}
                       lines={[
                         {
                           key: "impressions",
@@ -1374,489 +1711,169 @@ export default function MetaPage() {
                     />
                   </InsightChartCard>
 
-                  {/* SPEND TREND */}
                   <InsightChartCard
-                    title="Spend & efficiency"
-                    description="Daily spend and engagement efficiency across the selected range"
+                    title="Combined spend & efficiency"
+                    description="Daily spend and efficiency across the selected ads"
                   >
                     <SpendEfficiencyChart
-                      data={chartData}
-                      insightTotals={insightTotals}
+                      data={combinedChartData}
+                      insightTotals={combinedInsightTotals}
                     />
                   </InsightChartCard>
                 </div>
+              </div>
 
-                {/* ================================================= */}
-                {/* DAILY PERFORMANCE */}
-                {/* ================================================= */}
+              {/* ========================================================= */}
+              {/* COMBINED DAILY PERFORMANCE — tinted green */}
+              {/* ========================================================= */}
 
-                <div className="overflow-hidden rounded-2xl border border-[#dadde1] bg-white shadow-sm">
-                  <div className="border-b border-[#f0f1f2] px-5 py-4">
-                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <h3 className="text-base font-bold text-[#1c1e21]">
-                          Daily performance
-                        </h3>
-
-                        <p className="mt-1 text-xs text-[#8a8d91]">
-                          Complete insight data returned for each day
-                        </p>
-                      </div>
-
-                      <span className="text-xs font-medium text-[#8a8d91]">
-                        {insights.length} rows
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[1000px] text-left">
-                      <thead>
-                        <tr className="border-b border-[#f0f1f2] bg-[#fafbfc]">
-                          <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                            Date
-                          </th>
-
-                          <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                            Impressions
-                          </th>
-
-                          <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                            Reach
-                          </th>
-
-                          <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                            Clicks
-                          </th>
-
-                          <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                            CTR
-                          </th>
-
-                          <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                            CPC
-                          </th>
-
-                          <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                            CPM
-                          </th>
-
-                          <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                            Spend
-                          </th>
-
-                          <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                            Conversions
-                          </th>
-                        </tr>
-                      </thead>
-
-                      <tbody>
-                        {insights.map((insight, index) => (
-                          <tr
-                            key={`${insight.date_start}-${index}`}
-                            className="border-b border-[#f0f1f2] last:border-0 hover:bg-[#fafbfc]"
-                          >
-                            <td className="whitespace-nowrap px-5 py-4 text-sm font-semibold text-[#1c1e21]">
-                              {formatInsightDate(insight.date)}
-                            </td>
-
-                            <td className="px-5 py-4 text-sm text-[#1c1e21]">
-                              {formatNumber(insight.impressions)}
-                            </td>
-
-                            <td className="px-5 py-4 text-sm text-[#1c1e21]">
-                              {formatNumber(insight.reach)}
-                            </td>
-
-                            <td className="px-5 py-4 text-sm text-[#1c1e21]">
-                              {formatNumber(insight.clicks)}
-                            </td>
-
-                            <td className="px-5 py-4 text-sm text-[#1c1e21]">
-                              {formatDecimal(insight.ctr, 2)}%
-                            </td>
-
-                            <td className="px-5 py-4 text-sm text-[#1c1e21]">
-                              {formatDecimal(insight.cpc, 2)}
-                            </td>
-
-                            <td className="px-5 py-4 text-sm text-[#1c1e21]">
-                              {formatDecimal(insight.cpm, 2)}
-                            </td>
-
-                            <td className="px-5 py-4 text-sm font-semibold text-[#1c1e21]">
-                              {formatDecimal(insight.spend, 2)}
-                            </td>
-
-                            <td className="px-5 py-4 text-sm font-semibold text-[#1c1e21]">
-                              {formatNumber(insight.conversions ?? 0)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-
-                      {/* ================================================= */}
-                      {/* TOTAL */}
-                      {/* ================================================= */}
-
-                      <tfoot>
-                        <tr className="bg-[#fafbfc]">
-                          <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                            Total
-                          </td>
-
-                          <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                            {formatNumber(insightTotals.impressions)}
-                          </td>
-
-                          <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                            {formatNumber(insightTotals.reach)}
-                          </td>
-
-                          <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                            {formatNumber(insightTotals.clicks)}
-                          </td>
-
-                          <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                            {formatDecimal(insightTotals.ctr, 2)}%
-                          </td>
-
-                          <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                            {formatDecimal(insightTotals.cpc, 2)}
-                          </td>
-
-                          <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                            {formatDecimal(insightTotals.cpm, 2)}
-                          </td>
-
-                          <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                            {formatDecimal(insightTotals.spend, 2)}
-                          </td>
-
-                          <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                            {formatNumber(insightTotals.conversions)}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {combinedInsights.length > 0 && (
-          <div className="mt-10 pb-16">
-            {/* ========================================================= */}
-            {/* COMBINED INSIGHTS HEADER */}
-            {/* ========================================================= */}
-
-            <div className="mb-6 rounded-2xl border border-[#dbe7f5] bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#eff6ff] text-[#2563eb]">
-                      ▥
-                    </div>
-
+              <div className="overflow-hidden rounded-xl border border-[#d9ede1] bg-[#f3faf6] shadow-sm">
+                <div className="border-b border-[#e3f0e8] px-4 py-3">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h2 className="text-base font-bold text-[#0f172a]">
-                        Combined Insights
-                      </h2>
+                      <h3 className="text-sm font-bold text-[#1c1e21]">
+                        Combined daily performance
+                      </h3>
 
-                      <p className="mt-0.5 text-xs text-[#64748b]">
-                        Combined performance across {combinedInsightAds.length}{" "}
-                        {combinedInsightAds.length === 1 ? "ad" : "ads"}
+                      <p className="mt-0.5 text-[11px] text-[#8a8d91]">
+                        Daily metrics combined across all selected ads
                       </p>
                     </div>
+
+                    <span className="text-[11px] font-medium text-[#8a8d91]">
+                      {combinedInsights.length} rows
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {combinedInsightAds.map((ad) => (
-                    <div
-                      key={ad.id}
-                      className="flex items-center gap-2 rounded-full border border-[#dbe7f5] bg-[#f8fbff] px-3 py-1.5"
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#2563eb]" />
+                <div className="overflow-x-auto bg-white">
+                  <table className="w-full min-w-[900px] text-left">
+                    <thead>
+                      <tr className="border-b border-[#eef1f5] bg-[#f7f9fb]">
+                        <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                          Date
+                        </th>
 
-                      <span
-                        title={ad.name ? ad.name : undefined}
-                        className="max-w-[180px] truncate text-xs font-medium text-[#334155]"
-                      >
-                        {ad.name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                        <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                          Impressions
+                        </th>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[#64748b]">
-                <span className="font-medium text-[#334155]">Date range:</span>
+                        <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                          Reach
+                        </th>
 
-                <span className="rounded-full bg-[#eaf2ff] px-3 py-1.5 font-semibold text-[#1877F2]">
-                  {appliedDateStart}
-                  <span className="mx-1.5 text-[#8ab4f8]">→</span>
-                  {appliedDateEnd}
-                </span>
-              </div>
-            </div>
+                        <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                          Clicks
+                        </th>
 
-            {/* ========================================================= */}
-            {/* COMBINED KPI SUMMARY */}
-            {/* ========================================================= */}
+                        <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                          CTR
+                        </th>
 
-            <div className="mb-8">
-              <div className="mb-4">
-                <h3 className="text-base font-bold text-[#1c1e21]">
-                  Combined performance overview
-                </h3>
+                        <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                          CPC
+                        </th>
 
-                <p className="mt-1 text-xs text-[#8a8d91]">
-                  Aggregated across all selected ads and the current ad
-                </p>
-              </div>
+                        <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                          CPM
+                        </th>
 
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <InsightCard
-                  label="Impressions"
-                  value={formatNumber(combinedInsightTotals.impressions)}
-                />
+                        <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                          Spend
+                        </th>
 
-                <InsightCard
-                  label="Reach"
-                  value={formatNumber(combinedInsightTotals.reach)}
-                />
+                        <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#8a8d91]">
+                          Conversions
+                        </th>
+                      </tr>
+                    </thead>
 
-                <InsightCard
-                  label="Clicks"
-                  value={formatNumber(combinedInsightTotals.clicks)}
-                />
+                    <tbody>
+                      {combinedInsights.map((insight, index) => (
+                        <tr
+                          key={`${insight.date_start}-${index}`}
+                          className="border-b border-[#eef1f5] last:border-0 hover:bg-[#f7f9fb]"
+                        >
+                          <td className="whitespace-nowrap px-3 py-1.5 text-xs font-semibold text-[#1c1e21]">
+                            {formatInsightDate(insight.date)}
+                          </td>
 
-                <InsightCard
-                  label="Spend"
-                  value={formatDecimal(combinedInsightTotals.spend)}
-                />
+                          <td className="px-3 py-1.5 text-xs tabular-nums text-[#1c1e21]">
+                            {formatNumber(insight.impressions)}
+                          </td>
 
-                <InsightCard
-                  label="CTR"
-                  value={`${formatDecimal(combinedInsightTotals.ctr, 2)}%`}
-                />
+                          <td className="px-3 py-1.5 text-xs tabular-nums text-[#1c1e21]">
+                            {formatNumber(insight.reach)}
+                          </td>
 
-                <InsightCard
-                  label="CPC"
-                  value={formatDecimal(combinedInsightTotals.cpc, 2)}
-                />
+                          <td className="px-3 py-1.5 text-xs tabular-nums text-[#1c1e21]">
+                            {formatNumber(insight.clicks)}
+                          </td>
 
-                <InsightCard
-                  label="CPM"
-                  value={formatDecimal(combinedInsightTotals.cpm, 2)}
-                />
+                          <td className="px-3 py-1.5 text-xs tabular-nums text-[#1c1e21]">
+                            {formatDecimal(insight.ctr, 2)}%
+                          </td>
 
-                <InsightCard
-                  label="Conversions"
-                  value={formatNumber(combinedInsightTotals.conversions)}
-                />
-              </div>
-            </div>
+                          <td className="px-3 py-1.5 text-xs tabular-nums text-[#1c1e21]">
+                            {formatDecimal(insight.cpc, 2)}
+                          </td>
 
-            {/* ========================================================= */}
-            {/* COMBINED CHARTS */}
-            {/* ========================================================= */}
+                          <td className="px-3 py-1.5 text-xs tabular-nums text-[#1c1e21]">
+                            {formatDecimal(insight.cpm, 2)}
+                          </td>
 
-            <div className="mb-8 grid gap-5 xl:grid-cols-2">
-              <InsightChartCard
-                title="Combined traffic trend"
-                description="Impressions, reach and clicks across all selected ads"
-              >
-                <PerformanceLineChart
-                    data={combinedChartData}
-                    lines={[
-                        {
-                            key: "impressions",
-                            label: "Impressions",
-                            className:
-                                "stroke-[#1877F2]",
-                        },
-                        {
-                            key: "reach",
-                            label: "Reach",
-                            className:
-                                "stroke-[#8B5CF6]",
-                        },
-                        {
-                            key: "clicks",
-                            label: "Clicks",
-                            className:
-                                "stroke-[#10B981]",
-                        },
-                    ]}
-                />
-              </InsightChartCard>
+                          <td className="px-3 py-1.5 text-xs font-semibold tabular-nums text-[#1c1e21]">
+                            {formatDecimal(insight.spend, 2)}
+                          </td>
 
-              <InsightChartCard
-                title="Combined spend & efficiency"
-                description="Daily spend and efficiency across the selected ads"
-              >
-                <SpendEfficiencyChart
-                  data={combinedChartData}
-                  insightTotals={combinedInsightTotals}
-                />
-              </InsightChartCard>
-            </div>
+                          <td className="px-3 py-1.5 text-xs font-semibold tabular-nums text-[#1c1e21]">
+                            {formatNumber(insight.conversions ?? 0)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
 
-            {/* ========================================================= */}
-            {/* COMBINED DAILY PERFORMANCE */}
-            {/* ========================================================= */}
-
-            <div className="overflow-hidden rounded-2xl border border-[#dadde1] bg-white shadow-sm">
-              <div className="border-b border-[#f0f1f2] px-5 py-4">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h3 className="text-base font-bold text-[#1c1e21]">
-                      Combined daily performance
-                    </h3>
-
-                    <p className="mt-1 text-xs text-[#8a8d91]">
-                      Daily metrics combined across all selected ads
-                    </p>
-                  </div>
-
-                  <span className="text-xs font-medium text-[#8a8d91]">
-                    {combinedInsights.length} rows
-                  </span>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[1000px] text-left">
-                  <thead>
-                    <tr className="border-b border-[#f0f1f2] bg-[#fafbfc]">
-                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                        Date
-                      </th>
-
-                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                        Impressions
-                      </th>
-
-                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                        Reach
-                      </th>
-
-                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                        Clicks
-                      </th>
-
-                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                        CTR
-                      </th>
-
-                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                        CPC
-                      </th>
-
-                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                        CPM
-                      </th>
-
-                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                        Spend
-                      </th>
-
-                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">
-                        Conversions
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {combinedInsights.map((insight, index) => (
-                      <tr
-                        key={`${insight.date_start}-${index}`}
-                        className="border-b border-[#f0f1f2] last:border-0 hover:bg-[#fafbfc]"
-                      >
-                        <td className="whitespace-nowrap px-5 py-4 text-sm font-semibold text-[#1c1e21]">
-                          {formatInsightDate(insight.date)}
+                    <tfoot>
+                      <tr className="bg-[#f7f9fb]">
+                        <td className="px-3 py-1.5 text-xs font-bold text-[#1c1e21]">
+                          Total
                         </td>
 
-                        <td className="px-5 py-4 text-sm text-[#1c1e21]">
-                          {formatNumber(insight.impressions)}
+                        <td className="px-3 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                          {formatNumber(combinedInsightTotals.impressions)}
                         </td>
 
-                        <td className="px-5 py-4 text-sm text-[#1c1e21]">
-                          {formatNumber(insight.reach)}
+                        <td className="px-3 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                          {formatNumber(combinedInsightTotals.reach)}
                         </td>
 
-                        <td className="px-5 py-4 text-sm text-[#1c1e21]">
-                          {formatNumber(insight.clicks)}
+                        <td className="px-3 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                          {formatNumber(combinedInsightTotals.clicks)}
                         </td>
 
-                        <td className="px-5 py-4 text-sm text-[#1c1e21]">
-                          {formatDecimal(insight.ctr, 2)}%
+                        <td className="px-3 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                          {formatDecimal(combinedInsightTotals.ctr, 2)}%
                         </td>
 
-                        <td className="px-5 py-4 text-sm text-[#1c1e21]">
-                          {formatDecimal(insight.cpc, 2)}
+                        <td className="px-3 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                          {formatDecimal(combinedInsightTotals.cpc, 2)}
                         </td>
 
-                        <td className="px-5 py-4 text-sm text-[#1c1e21]">
-                          {formatDecimal(insight.cpm, 2)}
+                        <td className="px-3 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                          {formatDecimal(combinedInsightTotals.cpm, 2)}
                         </td>
 
-                        <td className="px-5 py-4 text-sm font-semibold text-[#1c1e21]">
-                          {formatDecimal(insight.spend, 2)}
+                        <td className="px-3 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                          {formatDecimal(combinedInsightTotals.spend, 2)}
                         </td>
 
-                        <td className="px-5 py-4 text-sm font-semibold text-[#1c1e21]">
-                          {formatNumber(insight.conversions ?? 0)}
+                        <td className="px-3 py-1.5 text-xs font-bold tabular-nums text-[#1c1e21]">
+                          {formatNumber(combinedInsightTotals.conversions)}
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-
-                  <tfoot>
-                    <tr className="bg-[#fafbfc]">
-                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                        Total
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                        {formatNumber(combinedInsightTotals.impressions)}
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                        {formatNumber(combinedInsightTotals.reach)}
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                        {formatNumber(combinedInsightTotals.clicks)}
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                        {formatDecimal(combinedInsightTotals.ctr, 2)}%
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                        {formatDecimal(combinedInsightTotals.cpc, 2)}
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                        {formatDecimal(combinedInsightTotals.cpm, 2)}
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                        {formatDecimal(combinedInsightTotals.spend, 2)}
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-bold text-[#1c1e21]">
-                        {formatNumber(combinedInsightTotals.conversions)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
             </div>
           </div>

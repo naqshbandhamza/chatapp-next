@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: true,
       sameSite: "lax",
-      domain: ".chimesocial.space",
+      //domain: ".chimesocial.space",
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
     });
