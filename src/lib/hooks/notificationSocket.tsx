@@ -43,6 +43,23 @@ export const useNotifcationSocket = (
         console.log("notification WebSocket connected");
   
         reconnectAttemptRef.current = 0;
+
+         // Start heartbeat for every connected socket
+        if (heartbeatRef.current) {
+          clearInterval(heartbeatRef.current);
+        }
+
+        heartbeatRef.current = setInterval(() => {
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(
+              JSON.stringify({
+                data: {
+                  event_type: "ping",
+                },
+              })
+            );
+          }
+        }, 30000);
   
         const pendingChats = Array.from(
           desiredChatsRef.current
@@ -71,18 +88,6 @@ export const useNotifcationSocket = (
         for (const chatId of pendingChats) {
           subscribedChatsRef.current.add(chatId);
         }
-
-        heartbeatRef.current = setInterval(() => {
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.send(
-              JSON.stringify({
-                data: {
-                  event_type: "ping",
-                },
-              })
-            );
-          }
-        }, 30000);
 
       };
   
@@ -146,6 +151,11 @@ export const useNotifcationSocket = (
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
+      }
+
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
       }
   
       const socket = socketRef.current;
