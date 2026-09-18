@@ -19,6 +19,8 @@ export const useNotifcationSocket = (
   const reconnectAttemptRef = useRef(0);
   const shouldReconnectRef = useRef(true);
 
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     shouldReconnectRef.current = true;
     reconnectAttemptRef.current = 0;
@@ -69,6 +71,19 @@ export const useNotifcationSocket = (
         for (const chatId of pendingChats) {
           subscribedChatsRef.current.add(chatId);
         }
+
+        heartbeatRef.current = setInterval(() => {
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(
+              JSON.stringify({
+                data: {
+                  event_type: "ping",
+                },
+              })
+            );
+          }
+        }, 30000);
+
       };
   
       socket.onmessage = (event) => {
@@ -78,6 +93,10 @@ export const useNotifcationSocket = (
   
       socket.onclose = () => {
         console.log("notification WebSocket disconnected");
+
+        if (socketRef.current !== socket) {
+          return;
+        }
   
         if (socketRef.current === socket) {
           socketRef.current = null;
@@ -85,6 +104,11 @@ export const useNotifcationSocket = (
   
         if (!shouldReconnectRef.current) {
           return;
+        }
+
+        if (heartbeatRef.current) {
+          clearInterval(heartbeatRef.current);
+          heartbeatRef.current = null;
         }
   
         // Everything subscribed to this socket
@@ -209,6 +233,13 @@ export const useNotifcationSocket = (
   // SEND BATCH UNSUBSCRIBE
   // ============================================================
   const unsubscribeChats = (chatIds: number[]) => {
+
+    // Always remove from desired first.
+    for (const chatId of chatIds) {
+      desiredChatsRef.current.delete(chatId);
+      subscribedChatsRef.current.delete(chatId);
+    }
+
     const socket = socketRef.current;
 
     if (
@@ -230,14 +261,6 @@ export const useNotifcationSocket = (
       })
     );
 
-    // Remove from pending subscriptions too.
-    for (const chatId of chatIds) {
-      desiredChatsRef.current.delete(chatId);
-    }
-
-    for (const chatId of chatIds) {
-      subscribedChatsRef.current.delete(chatId);
-    }
   };
 
   return {
