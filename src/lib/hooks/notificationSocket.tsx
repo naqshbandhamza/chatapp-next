@@ -20,11 +20,72 @@ export const useNotifcationSocket = (
   const reconnectAttemptRef = useRef(0);
   const shouldReconnectRef = useRef(true);
 
-  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const heartbeatRef = useRef<{
+    socket: WebSocket;
+    interval: ReturnType<typeof setInterval>;
+  } | null>(null);
 
   useEffect(() => {
     shouldReconnectRef.current = true;
     reconnectAttemptRef.current = 0;
+
+    const startHeartbeat = (socket: WebSocket) => {
+      // Kill any heartbeat belonging to a previous socket
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current.interval);
+        heartbeatRef.current = null;
+      }
+    
+      lastPongRef.current = Date.now();
+    
+      const ping = () => {
+        // This heartbeat no longer belongs to the active socket
+        if (socketRef.current !== socket) {
+          console.log("Ignoring heartbeat from stale socket");
+          return;
+        }
+    
+        if (socket.readyState !== WebSocket.OPEN) {
+          return;
+        }
+    
+        const elapsed = Date.now() - lastPongRef.current;
+    
+        console.log("heartbeat tick", {
+          elapsed,
+          readyState: socket.readyState,
+        });
+    
+        if (elapsed > 90000) {
+          console.warn("WebSocket heartbeat timeout");
+    
+          socket.close();
+          return;
+        }
+    
+        console.log("sending ping");
+    
+        socket.send(
+          JSON.stringify({
+            data: {
+              event_type: "ping",
+            },
+          })
+        );
+      };
+    
+      // Send immediately after connection
+      ping();
+    
+      const interval = setInterval(ping, 30000);
+    
+      heartbeatRef.current = {
+        socket,
+        interval,
+      };
+    
+      console.log("heartbeat started");
+    };
   
     const connect = (): WebSocket | null => {
       if (!shouldReconnectRef.current) {
@@ -56,39 +117,39 @@ export const useNotifcationSocket = (
         console.log("notification WebSocket connected");
   
         reconnectAttemptRef.current = 0;
-        lastPongRef.current = Date.now();
+        startHeartbeat(socket);
 
-         // Start heartbeat for every connected socket
-        if (heartbeatRef.current) {
-          clearInterval(heartbeatRef.current);
-        }
+        // lastPongRef.current = Date.now();
+        //  // Start heartbeat for every connected socket
+        // if (heartbeatRef.current) {
+        //   clearInterval(heartbeatRef.current);
+        // }
+        // heartbeatRef.current = setInterval(() => {
+        //   if (socket.readyState === WebSocket.OPEN) {
 
-        heartbeatRef.current = setInterval(() => {
-          if (socket.readyState === WebSocket.OPEN) {
-
-            const elapsed = Date.now() - lastPongRef.current;
-            if (elapsed > 90000) {
-              console.warn("WebSocket heartbeat timeout");
-              console.log("Closing dead WebSocket...", {
-                readyState: socket.readyState,
-                socketRefSame: socketRef.current === socket,
-              });
+        //     const elapsed = Date.now() - lastPongRef.current;
+        //     if (elapsed > 90000) {
+        //       console.warn("WebSocket heartbeat timeout");
+        //       console.log("Closing dead WebSocket...", {
+        //         readyState: socket.readyState,
+        //         socketRefSame: socketRef.current === socket,
+        //       });
               
-              socket.close();
+        //       socket.close();
               
-              console.log("close() called");
-              return;
-            }
+        //       console.log("close() called");
+        //       return;
+        //     }
 
-            socket.send(
-              JSON.stringify({
-                data: {
-                  event_type: "ping",
-                },
-              })
-            );
-          }
-        }, 30000);
+        //     socket.send(
+        //       JSON.stringify({
+        //         data: {
+        //           event_type: "ping",
+        //         },
+        //       })
+        //     );
+        //   }
+        // }, 30000);
   
         const pendingChats = Array.from(
           desiredChatsRef.current
@@ -133,46 +194,46 @@ export const useNotifcationSocket = (
   
       socket.onclose = () => {
         console.log("notification WebSocket disconnected");
-
+      
         if (socketRef.current !== socket) {
+          console.log("Ignoring close from stale socket");
           return;
         }
-
+      
         socketRef.current = null;
-
-        if (heartbeatRef.current) {
-          clearInterval(heartbeatRef.current);
+      
+        // Only clear heartbeat belonging to THIS socket
+        if (
+          heartbeatRef.current &&
+          heartbeatRef.current.socket === socket
+        ) {
+          clearInterval(heartbeatRef.current.interval);
           heartbeatRef.current = null;
         }
-  
+      
         if (!shouldReconnectRef.current) {
           return;
         }
-  
-        // Everything subscribed to this socket
-        // needs to be subscribed again.
+      
         for (const chatId of subscribedChatsRef.current) {
           desiredChatsRef.current.add(chatId);
         }
-  
+      
         subscribedChatsRef.current.clear();
-
-        // Don't create multiple reconnect timers
+      
         if (reconnectTimeoutRef.current) {
           return;
         }
-  
+      
         const attempt = reconnectAttemptRef.current++;
-  
+      
         const delay = Math.min(
           1000 * Math.pow(2, attempt),
           30000
         );
-  
-        console.log(
-          `reconnecting in ${delay}ms`
-        );
-  
+      
+        console.log(`reconnecting in ${delay}ms`);
+      
         reconnectTimeoutRef.current = setTimeout(() => {
           reconnectTimeoutRef.current = null;
           connect();
@@ -193,7 +254,7 @@ export const useNotifcationSocket = (
       }
 
       if (heartbeatRef.current) {
-        clearInterval(heartbeatRef.current);
+        clearInterval(heartbeatRef.current.interval);
         heartbeatRef.current = null;
       }
   
