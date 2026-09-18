@@ -16,6 +16,7 @@ export const useNotifcationSocket = (
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+  const lastPongRef = useRef<number>(Date.now());
   const reconnectAttemptRef = useRef(0);
   const shouldReconnectRef = useRef(true);
 
@@ -29,7 +30,7 @@ export const useNotifcationSocket = (
       if (!shouldReconnectRef.current) {
         return null;
       }
-
+      console.log("in connect")
       // Don't create another socket if one is already alive/connecting
       if (
         socketRef.current &&
@@ -38,6 +39,7 @@ export const useNotifcationSocket = (
           socketRef.current.readyState === WebSocket.CONNECTING
         )
       ) {
+        console.log("already connected")
         return socketRef.current;
       }
   
@@ -54,6 +56,7 @@ export const useNotifcationSocket = (
         console.log("notification WebSocket connected");
   
         reconnectAttemptRef.current = 0;
+        lastPongRef.current = Date.now();
 
          // Start heartbeat for every connected socket
         if (heartbeatRef.current) {
@@ -62,6 +65,21 @@ export const useNotifcationSocket = (
 
         heartbeatRef.current = setInterval(() => {
           if (socket.readyState === WebSocket.OPEN) {
+
+            const elapsed = Date.now() - lastPongRef.current;
+            if (elapsed > 90000) {
+              console.warn("WebSocket heartbeat timeout");
+              console.log("Closing dead WebSocket...", {
+                readyState: socket.readyState,
+                socketRefSame: socketRef.current === socket,
+              });
+              
+              socket.close();
+              
+              console.log("close() called");
+              return;
+            }
+
             socket.send(
               JSON.stringify({
                 data: {
@@ -104,6 +122,12 @@ export const useNotifcationSocket = (
   
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
+
+        if (data?.data?.event_type === "pong") {
+          lastPongRef.current = Date.now();
+          return;
+        }
+
         onMessage(data);
       };
   
