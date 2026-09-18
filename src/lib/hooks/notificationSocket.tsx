@@ -29,6 +29,17 @@ export const useNotifcationSocket = (
       if (!shouldReconnectRef.current) {
         return null;
       }
+
+      // Don't create another socket if one is already alive/connecting
+      if (
+        socketRef.current &&
+        (
+          socketRef.current.readyState === WebSocket.OPEN ||
+          socketRef.current.readyState === WebSocket.CONNECTING
+        )
+      ) {
+        return socketRef.current;
+      }
   
       const protocol =
         window.location.protocol === "https:" ? "wss" : "ws";
@@ -102,18 +113,16 @@ export const useNotifcationSocket = (
         if (socketRef.current !== socket) {
           return;
         }
-  
-        if (socketRef.current === socket) {
-          socketRef.current = null;
-        }
-  
-        if (!shouldReconnectRef.current) {
-          return;
-        }
+
+        socketRef.current = null;
 
         if (heartbeatRef.current) {
           clearInterval(heartbeatRef.current);
           heartbeatRef.current = null;
+        }
+  
+        if (!shouldReconnectRef.current) {
+          return;
         }
   
         // Everything subscribed to this socket
@@ -123,6 +132,11 @@ export const useNotifcationSocket = (
         }
   
         subscribedChatsRef.current.clear();
+
+        // Don't create multiple reconnect timers
+        if (reconnectTimeoutRef.current) {
+          return;
+        }
   
         const attempt = reconnectAttemptRef.current++;
   
@@ -136,6 +150,7 @@ export const useNotifcationSocket = (
         );
   
         reconnectTimeoutRef.current = setTimeout(() => {
+          reconnectTimeoutRef.current = null;
           connect();
         }, delay);
       };
