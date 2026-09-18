@@ -6,7 +6,6 @@ export const useNotifcationSocket = (
   userId: string,
   onMessage: (msg: any) => void
 ) => {
-
   const { token } = useSelector((state: any) => state.user);
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -14,20 +13,48 @@ export const useNotifcationSocket = (
   const desiredChatsRef = useRef<Set<number>>(new Set());
   const subscribedChatsRef = useRef<Set<number>>(new Set());
 
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+  const reconnectAttemptRef = useRef(0);
+  const shouldReconnectRef = useRef(true);
+
   useEffect(() => {
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const socket = new WebSocket(
-      `${protocol}://${process.env.NEXT_PUBLIC_WS_URL}/ws/api/chat/notifications/`
-    );
-
-    socketRef.current = socket;
-
-    socket.onopen = () => {
-      console.log("notification WebSocket connected");
-
-      const pendingChats = Array.from(desiredChatsRef.current);
-      if (pendingChats.length > 0) {
-        console.log("subscribing after connection:", pendingChats);
+    shouldReconnectRef.current = true;
+    reconnectAttemptRef.current = 0;
+  
+    const connect = (): WebSocket | null => {
+      if (!shouldReconnectRef.current) {
+        return null;
+      }
+  
+      const protocol =
+        window.location.protocol === "https:" ? "wss" : "ws";
+  
+      const socket = new WebSocket(
+        `${protocol}://${process.env.NEXT_PUBLIC_WS_URL}/ws/api/chat/notifications/`
+      );
+  
+      socketRef.current = socket;
+  
+      socket.onopen = () => {
+        console.log("notification WebSocket connected");
+  
+        reconnectAttemptRef.current = 0;
+  
+        const pendingChats = Array.from(
+          desiredChatsRef.current
+        );
+  
+        if (pendingChats.length === 0) {
+          return;
+        }
+  
+        console.log(
+          "subscribing after connection:",
+          pendingChats
+        );
+  
         socket.send(
           JSON.stringify({
             data: {
@@ -36,30 +63,75 @@ export const useNotifcationSocket = (
             },
           })
         );
-
-        // They have now been sent; no longer pending.
+  
         desiredChatsRef.current.clear();
-        // Mark them as subscribed on this socket.
+  
         for (const chatId of pendingChats) {
           subscribedChatsRef.current.add(chatId);
         }
-      }
+      };
+  
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        onMessage(data);
+      };
+  
+      socket.onclose = () => {
+        console.log("notification WebSocket disconnected");
+  
+        if (socketRef.current === socket) {
+          socketRef.current = null;
+        }
+  
+        if (!shouldReconnectRef.current) {
+          return;
+        }
+  
+        // Everything subscribed to this socket
+        // needs to be subscribed again.
+        for (const chatId of subscribedChatsRef.current) {
+          desiredChatsRef.current.add(chatId);
+        }
+  
+        subscribedChatsRef.current.clear();
+  
+        const attempt = reconnectAttemptRef.current++;
+  
+        const delay = Math.min(
+          1000 * Math.pow(2, attempt),
+          30000
+        );
+  
+        console.log(
+          `reconnecting in ${delay}ms`
+        );
+  
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connect();
+        }, delay);
+      };
+  
+      return socket;
     };
-
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      onMessage(data);
-    };
-
-    socket.onclose = () => {
-      console.log("notification WebSocket disconnected");
-    };
-
+  
+    connect();
+  
     return () => {
-      socket.close();
-
+      shouldReconnectRef.current = false;
+  
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+  
+      const socket = socketRef.current;
+  
       socketRef.current = null;
-
+  
+      if (socket) {
+        socket.close();
+      }
+  
       desiredChatsRef.current.clear();
       subscribedChatsRef.current.clear();
     };
@@ -94,9 +166,9 @@ export const useNotifcationSocket = (
 
   const subscribeChats = (chatIds: number[]) => {
     const socket = socketRef.current;
-  
+
     const newChatIds: number[] = [];
-  
+
     for (const chatId of chatIds) {
       if (
         !subscribedChatsRef.current.has(chatId) &&
@@ -106,16 +178,16 @@ export const useNotifcationSocket = (
         newChatIds.push(chatId);
       }
     }
-  
+
     if (newChatIds.length === 0) {
       return;
     }
-  
+
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       console.log("queued subscription:", desiredChatsRef.current);
       return;
     }
-  
+
     console.log("subscribing to new chats:", newChatIds);
     socket.send(
       JSON.stringify({
@@ -125,7 +197,7 @@ export const useNotifcationSocket = (
         },
       })
     );
-  
+
     // No longer pending.
     for (const chatId of newChatIds) {
       desiredChatsRef.current.delete(chatId);
@@ -138,7 +210,7 @@ export const useNotifcationSocket = (
   // ============================================================
   const unsubscribeChats = (chatIds: number[]) => {
     const socket = socketRef.current;
-  
+
     if (
       !socket ||
       socket.readyState !== WebSocket.OPEN ||
@@ -146,9 +218,9 @@ export const useNotifcationSocket = (
     ) {
       return;
     }
-  
+
     console.log("unsubscribing from chats:", chatIds);
-  
+
     socket.send(
       JSON.stringify({
         data: {
@@ -157,7 +229,7 @@ export const useNotifcationSocket = (
         },
       })
     );
-  
+
     // Remove from pending subscriptions too.
     for (const chatId of chatIds) {
       desiredChatsRef.current.delete(chatId);
@@ -167,65 +239,6 @@ export const useNotifcationSocket = (
       subscribedChatsRef.current.delete(chatId);
     }
   };
-
-  // ============================================================
-  // SUBSCRIBE TO CHAT GROUP
-  // ============================================================
-
-  // const subscribeChat = (chatId: number) => {
-
-  //   // Remember it immediately, even if socket isn't connected yet
-  //   if (subscribedChatsRef.current.has(chatId)) {
-  //     return;
-  //   }
-
-  //   subscribedChatsRef.current.add(chatId);
-
-  //   const socket = socketRef.current;
-
-  //   // Socket isn't ready yet.
-  //   // onopen() will send this subscription.
-  //   if (!socket || socket.readyState !== WebSocket.OPEN) {
-  //     console.log("queued subscription:", chatId);
-  //     return;
-  //   }
-
-  //   console.log("subscribing:", chatId);
-
-  //   socket.send(
-  //     JSON.stringify({
-  //       data: {
-  //         event_type: "subscribe_chat",
-  //         chat_id: chatId,
-  //       },
-  //     })
-  //   );
-  // };
-
-  // ============================================================
-  // UNSUBSCRIBE FROM CHAT GROUP
-  // ============================================================
-
-  // const unsubscribeChat = (chatId: number) => {
-
-  //   // Remove it from our desired subscriptions immediately
-  //   subscribedChatsRef.current.delete(chatId);
-
-  //   const socket = socketRef.current;
-
-  //   if (!socket || socket.readyState !== WebSocket.OPEN) {
-  //     return;
-  //   }
-
-  //   socket.send(
-  //     JSON.stringify({
-  //       data: {
-  //         event_type: "unsubscribe_chat",
-  //         chat_id: chatId,
-  //       },
-  //     })
-  //   );
-  // };
 
   return {
     sendMessage,
