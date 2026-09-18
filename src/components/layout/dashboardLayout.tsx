@@ -43,7 +43,7 @@ export default function DashboardLayout() {
         return selectedchatid;
     }
 
-    const { sendMessage, subscribeChat, unsubscribeChat } = useNotifcationSocket(id, (res) => {
+    const { sendMessage, subscribeChats, unsubscribeChats } = useNotifcationSocket(id, (res) => {
 
         if (res.data.event_type === "new_chat") {
 
@@ -89,21 +89,12 @@ export default function DashboardLayout() {
 
     React.useEffect(() => {
         
-        for (const chat of chats) {
+        const chatIds = chats
+        .map((chat:any) => Number(chat.chat_id))
+        .filter((chatId:number) => !Number.isNaN(chatId) && chatId > 0);
+        subscribeChats(chatIds);
 
-            const chatId = Number(chat.chat_id);
-
-            if (
-                Number.isNaN(chatId) ||
-                chatId <= 0
-            ) {
-                continue;
-            }
-            console.log("sending to subscribe chat" ,chats)
-            subscribeChat(chatId);
-        }
-
-    }, [chats,subscribeChat]);
+    }, [chats,subscribeChats]);
 
     return (
         <main
