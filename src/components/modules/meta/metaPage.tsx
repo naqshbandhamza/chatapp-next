@@ -6,6 +6,7 @@ import {
   useMemo,
   useReducer,
   useState,
+  useRef,
   type ReactNode,
 } from "react";
 import { useSelector } from "react-redux";
@@ -463,16 +464,25 @@ export default function MetaPage() {
     [token, appliedDateStart, appliedDateEnd]
   );
 
+  const adAccountsCursorRef = useRef<string | null>(null);
   const syncAdAccounts = useCallback(async () => {
     try {
       setLoading("syncAccounts", true);
       setError(null);
 
-      await apiPost(
+      const response:any = await apiPost(
         token,
         "/api/meta/ad-accounts/sync/",
-        "Failed to sync Meta ad accounts."
+        "Failed to sync Meta ad accounts.",
+        adAccountsCursorRef.current
+          ? {
+              after: adAccountsCursorRef.current,
+            }
+          : {}
       );
+
+      adAccountsCursorRef.current =
+        response?.pagination?.after ?? null;
 
       await loadMeta();
     } catch (err) {
@@ -483,17 +493,26 @@ export default function MetaPage() {
     }
   }, [token, loadMeta, setLoading]);
 
+  const campaignsCursorRef = useRef<string | null>(null);
   const syncCampaigns = useCallback(
     async (accountId: number) => {
       try {
         setLoading("syncCampaigns", true);
         setError(null);
 
-        await apiGet(
+        const response:any = await apiGet(
           token,
           `/api/meta/ad-accounts/${accountId}/campaigns/`,
-          "Failed to sync campaigns."
+          "Failed to sync campaigns.",
+          campaignsCursorRef.current
+          ? {
+              after: campaignsCursorRef.current,
+            }
+          : {}
         );
+
+        campaignsCursorRef.current =
+        response?.pagination?.after ?? null;
 
         await loadCampaigns(accountId);
       } catch (err) {
@@ -506,17 +525,26 @@ export default function MetaPage() {
     [token, loadCampaigns, setLoading]
   );
 
+  const adSetsCursorRef = useRef<string | null>(null);
   const syncAdSets = useCallback(
     async (campaignId: number) => {
       try {
         setLoading("syncAdSets", true);
         setError(null);
 
-        await apiGet(
+        const response :any = await apiGet(
           token,
           `/api/meta/campaigns/${campaignId}/ad-sets/`,
-          "Failed to sync ad sets."
+          "Failed to sync ad sets.",
+          adSetsCursorRef.current
+          ? {
+              after: adSetsCursorRef.current,
+            }
+          : {}
         );
+
+        adSetsCursorRef.current =
+        response?.pagination?.after ?? null;
 
         await loadAdSets(campaignId);
       } catch (err) {
@@ -529,17 +557,26 @@ export default function MetaPage() {
     [token, loadAdSets, setLoading]
   );
 
+  const adsCursorRef = useRef<string | null>(null);
   const syncAds = useCallback(
     async (adSetId: number) => {
       try {
         setLoading("syncAds", true);
         setError(null);
 
-        await apiGet(
+        const response:any =await apiGet(
           token,
           `/api/meta/ad-sets/${adSetId}/ads/`,
-          "Failed to sync ads."
+          "Failed to sync ads.",
+          adsCursorRef.current
+          ? {
+              after: adsCursorRef.current,
+            }
+          : {}
         );
+
+        adsCursorRef.current =
+        response?.pagination?.after ?? null;
 
         await loadAds(adSetId);
       } catch (err) {
@@ -1485,7 +1522,13 @@ export default function MetaPage() {
                       </thead>
 
                       <tbody>
-                        {insights.map((insight, index) => (
+                      {[...insights]
+                            .sort(
+                              (a, b) =>
+                                new Date(`${a.date_start}T00:00:00`).getTime() -
+                                new Date(`${b.date_start}T00:00:00`).getTime()
+                            )
+                            .map((insight, index) => (
                           <tr
                             key={`${insight.date_start}-${index}`}
                             className="border-b border-[#eef1f5] last:border-0 hover:bg-[#f7f9fb]"
@@ -1789,7 +1832,13 @@ export default function MetaPage() {
                     </thead>
 
                     <tbody>
-                      {combinedInsights.map((insight, index) => (
+                    {[...combinedInsights]
+                            .sort(
+                              (a, b) =>
+                                new Date(`${a.date}T00:00:00`).getTime() -
+                                new Date(`${b.date}T00:00:00`).getTime()
+                            )
+                            .map((insight, index) => (
                         <tr
                           key={`${insight.date_start}-${index}`}
                           className="border-b border-[#eef1f5] last:border-0 hover:bg-[#f7f9fb]"

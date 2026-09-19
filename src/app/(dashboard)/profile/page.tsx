@@ -10,6 +10,7 @@ import { Providers } from '@/app/providers';
 
 import { getUser } from '@/lib/queries/Users/getUser';
 import { getCurrentUserChats } from '@/lib/queries/Users/getCurrentUserChats';
+import { getAutomationAlerts } from '@/lib/queries/Automations/getAutomationAlerts';
 
 import DashboardLayout from '@/components/layout/dashboardLayout';
 
@@ -70,6 +71,9 @@ export default async function DashboardPage() {
     const currentChats =
         await getCurrentUserChats(token);
 
+    const automationAlerts =
+        await getAutomationAlerts(token);
+
     const username =
         userDetails.success
             ? userDetails?.data?.username
@@ -98,7 +102,9 @@ export default async function DashboardPage() {
             user={user}
             currentChats={currentChats.data}
         >
-            <DashboardLayout />
+            <DashboardLayout 
+             initialAutomationAlerts={automationAlerts.data}
+            />
         </Providers>
     );
 }

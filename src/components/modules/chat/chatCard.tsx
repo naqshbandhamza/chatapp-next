@@ -67,7 +67,7 @@ export default function ChatCard({ chat, username, id, latest, participantUserna
                         <span
                             className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white"
                             style={{
-                                background: "#68d391",
+                                background: "gray",
                             }}
                         />
                     </div>

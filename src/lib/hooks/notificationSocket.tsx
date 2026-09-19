@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef,useState } from "react";
 import { useSelector } from "react-redux";
 
 export const useNotifcationSocket = (
@@ -8,6 +8,9 @@ export const useNotifcationSocket = (
 ) => {
   const { token } = useSelector((state: any) => state.user);
   const socketRef = useRef<WebSocket | null>(null);
+
+  const [connectionStatus, setConnectionStatus] =
+  useState<"online" | "offline">("offline");
 
   // Chats that the frontend currently wants subscribed to
   const desiredChatsRef = useRef<Set<number>>(new Set());
@@ -58,7 +61,7 @@ export const useNotifcationSocket = (
     
         if (elapsed > 90000) {
           console.warn("WebSocket heartbeat timeout");
-    
+          setConnectionStatus("offline");
           socket.close();
           return;
         }
@@ -115,6 +118,7 @@ export const useNotifcationSocket = (
   
       socket.onopen = () => {
         console.log("notification WebSocket connected");
+        setConnectionStatus("online");
   
         reconnectAttemptRef.current = 0;
         startHeartbeat(socket);
@@ -194,6 +198,7 @@ export const useNotifcationSocket = (
   
       socket.onclose = () => {
         console.log("notification WebSocket disconnected");
+        setConnectionStatus("offline");
       
         if (socketRef.current !== socket) {
           console.log("Ignoring close from stale socket");
@@ -377,5 +382,6 @@ export const useNotifcationSocket = (
     sendMessage,
     subscribeChats,
     unsubscribeChats,
+    connectionStatus,
   };
 };

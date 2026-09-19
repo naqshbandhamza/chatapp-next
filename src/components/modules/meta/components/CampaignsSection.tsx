@@ -95,9 +95,7 @@ export default function CampaignsSection({
       </div>
 
       <div id="campaigns-panel">
-        {isCollapsed ? null : campaigns.length === 0 ? (
-          <LoadingBox text="Loading campaigns..." />
-        ) : campaigns.length === 0 ? (
+        {campaigns.length === 0 ? (
           <EmptyState text="No campaigns found for this ad account." />
         ) : (
           <div className="rounded-xl border border-[#e4e6eb] bg-white p-2.5 shadow-sm">
