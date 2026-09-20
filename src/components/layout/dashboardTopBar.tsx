@@ -389,7 +389,7 @@ export default function DashboardTopBar({
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-gray-900">
-                            {alert.title}
+                            {/*alert.title*/}Creative Fatigue Analysis
                           </p>
 
                           <p className="mt-1 truncate text-xs text-gray-500">
@@ -401,7 +401,7 @@ export default function DashboardTopBar({
                           </p>
                         </div>
 
-                        <span
+                        {/* <span
                           className="
                     shrink-0
                     rounded-full
@@ -414,7 +414,7 @@ export default function DashboardTopBar({
                   "
                         >
                           {alert.severity}
-                        </span>
+                        </span> */}
                       </div>
                     </button>
                   ))

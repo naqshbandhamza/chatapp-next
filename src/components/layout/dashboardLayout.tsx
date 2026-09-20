@@ -9,6 +9,7 @@ import HomeModule from "@/components/modules/home/homeModule";
 import ChatLayout from "@/components/layout/chatLayout";
 import MetaPage from "../modules/meta/metaPage";
 import AutomationPage from "@/components/modules/automations/automationPage";
+import AutomationAlertToast from "@/components/modules/automations/AutomationAlertToast";
 
 import { useNotifcationSocket } from "@/lib/hooks/notificationSocket";
 import { useDispatch, useSelector } from "react-redux";
@@ -28,14 +29,21 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({
   initialAutomationAlerts,
 }: DashboardLayoutProps) {
-  const [automationAlerts, setAutomationAlerts] =
-      useState<any[]>(initialAutomationAlerts);
+  const [automationAlerts, setAutomationAlerts] = useState<any[]>(
+    initialAutomationAlerts
+  );
   const [activeSection, setActiveSection] = useState<DashboardSection>("home");
   //const [automationAlerts, setAutomationAlerts] = useState<any[]>([]);
   const { id } = useSelector((state: any) => state.user);
   const { id: selectedchatid } = useSelector(
     (state: any) => state.selectedChat
   );
+
+  const [automationToast, setAutomationToast] = useState<{
+    type: "new" | "updated";
+    alert: any;
+  } | null>(null);
+
   const { chats } = useSelector((state: any) => state.chats);
 
   const dispatch = useDispatch();
@@ -79,24 +87,25 @@ export default function DashboardLayout({
         }
       } else if (res.data.event_type === "automation.creative_fatigue") {
         const alert = res.data.content;
-        console.log("Creative fatigue alert:", alert);
 
-        setAutomationAlerts((prev) => {
-          const exists = prev.some(
-            (item) => item.alert_id === alert.alert_id
-          );
-        
-          if (exists) {
-            return prev.map((item) =>
-              item.alert_id === alert.alert_id
-                ? alert
-                : item
-            );
-          }
-        
-          return [alert, ...prev];
+        const exists = automationAlerts.some(
+          (item) => item.alert_id === alert.alert_id
+        );
+
+        setAutomationToast({
+          type: exists ? "updated" : "new",
+          alert,
         });
 
+        setAutomationAlerts((prev) => {
+          if (exists) {
+            return prev.map((item) =>
+              item.alert_id === alert.alert_id ? alert : item
+            );
+          }
+
+          return [alert, ...prev];
+        });
       }
     });
 
@@ -149,6 +158,14 @@ export default function DashboardLayout({
 
         {activeSection === "automations" && (
           <AutomationPage alerts={automationAlerts} />
+        )}
+
+        {automationToast && (
+          <AutomationAlertToast
+            type={automationToast.type}
+            alert={automationToast.alert}
+            onClose={() => setAutomationToast(null)}
+          />
         )}
       </section>
     </main>

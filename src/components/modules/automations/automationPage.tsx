@@ -23,14 +23,14 @@ function AutomationAlert({ alert }: { alert: any }) {
         <div className="border-b border-gray-100 p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="font-semibold text-gray-900">{alert.title}</h2>
-  
+              {/* <h2 className="font-semibold text-gray-900">{alert.title}</h2> */}
+              <h2 className="font-semibold text-gray-900">Creatives Analysis</h2>
               <p className="mt-1 text-sm text-gray-500">
-                Creative fatigue detected
+                Creative fatigue Analysis
               </p>
             </div>
   
-            <span
+            {/* <span
               className="
                               rounded-full
                               bg-yellow-100
@@ -43,7 +43,7 @@ function AutomationAlert({ alert }: { alert: any }) {
                           "
             >
               {alert.severity}
-            </span>
+            </span> */}
           </div>
   
           {/* Campaign hierarchy */}
