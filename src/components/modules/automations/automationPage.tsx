@@ -16,6 +16,10 @@ function AutomationAlert({ alert }: { alert: any }) {
     const baseline = alert.metrics?.baseline;
     const changes = alert.metrics?.changes;
     const periods = alert.metrics?.periods;
+
+    const lastDetected = alert.last_detected_at
+    ? new Date(alert.last_detected_at).toLocaleString()
+    : null;
   
     return (
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -29,6 +33,15 @@ function AutomationAlert({ alert }: { alert: any }) {
                 Creative fatigue Analysis
               </p>
             </div>
+
+            {lastDetected && (
+            <div className="text-right">
+              <p className="text-xs text-gray-400">Last updated</p>
+              <p className="mt-0.5 text-xs font-medium text-gray-600">
+                {lastDetected}
+              </p>
+            </div>
+          )}
   
             {/* <span
               className="
